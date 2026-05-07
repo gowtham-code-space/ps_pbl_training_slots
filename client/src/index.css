@@ -1,1 +1,53 @@
 @import "tailwindcss";
+
+:root {
+	/* Strict palette (user provided) */
+	--color-primary: #7D53F6;
+	--color-primary-light: rgba(125, 83, 246, 0.75);
+	--color-secondary: #ECE8FE;
+	--color-secondary-dark: #ddd7fc;
+	--color-bg: #f6f5fc;
+
+	/* Common sizing tokens */
+	--space-1: 0.25rem;
+	--space-2: 0.5rem;
+	--space-3: 0.75rem;
+	--space-4: 1rem;
+	--space-5: 1.25rem;
+	--space-6: 1.5rem;
+
+	--space-page-x: clamp(1rem, 3vw, 1.5rem);
+	--space-card-x: 1.25rem;
+	--space-card-y: 1rem;
+
+	--fs-2xs: 0.7rem;
+	--fs-xs: 0.8rem;
+	--fs-sm: 0.9rem;
+	--fs-md: 1rem;
+	--fs-lg: 1.15rem;
+	--fs-xl: 1.6rem;
+
+	--radius-md: 0.75rem;
+	--radius-lg: 1rem;
+	--radius-xl: 1.25rem;
+	--radius-card: 1.1rem;
+
+	/* Common widths */
+	--w-container: 1100px;
+	--w-modal-sm: 520px;
+	--w-modal-md: 640px;
+	--w-modal-lg: 700px;
+
+	/* Keep headings consistent without introducing new fonts */
+	--font-heading: inherit;
+}
+
+@layer base {
+	html {
+		background: var(--color-bg);
+	}
+
+	body {
+		background: var(--color-bg);
+	}
+}
