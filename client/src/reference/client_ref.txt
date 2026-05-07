@@ -1,0 +1,36 @@
+/client
+│── /public
+│ ├── favicon.ico
+│ ├── robots.txt
+│ └── index.html
+│
+│── /src
+│ │── /assets
+│ │── /components
+│ │── /config
+│ │── /context
+│ │── /hooks
+│ │── /layouts
+│ │── /pages
+│ │── /routes
+│ │── /services
+│ │ │── core/
+│ │ │   ├── apiClient.js
+│ │ │   ├── apiMethods.js
+│ │ │   └── session.js
+│ │ │
+│ │ └── features/
+│ │
+│ │── /store
+│ │── /utils
+│ │── /validations
+│ │── App.jsx
+│ │── main.jsx
+│ └── index.css
+│
+│── /tests
+│── .env
+│── .gitignore
+│── package.json
+│── README.md
+└── vite.config.js
