@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+import { apiClient } from '../../services/core/apiClient';
+import { saveAccessToken } from '../../services/core/session';
+import { useStore } from '../../store/useStore';
+import { useNavigate } from 'react-router-dom';
 
 const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
   id: i,
@@ -47,6 +52,9 @@ const LayersIcon = ({ size = 28, color = 'white' }) => (
 );
 
 export default function PCDPLogin() {
+  const navigate = useNavigate();
+  const { showToast: pushToast } = useStore();
+
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -54,10 +62,8 @@ export default function PCDPLogin() {
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
-  const [toast, setToast] = useState(null);
   const [errors, setErrors] = useState({});
   const [btnHover, setBtnHover] = useState(false);
-  const [googleHover, setGoogleHover] = useState(false);
   const passwordRef = useRef(null);
   const usernameRef = useRef(null);
 
@@ -73,10 +79,7 @@ export default function PCDPLogin() {
     return () => window.removeEventListener('keydown', handler);
   }, [username, password]);
 
-  const showToast = (type, msg) => {
-    setToast({ type, msg });
-    setTimeout(() => setToast(null), 3500);
-  };
+  const showToast = (type, msg) => pushToast(msg, type !== 'success');
 
   const validate = () => {
     const errs = {};
@@ -86,11 +89,37 @@ export default function PCDPLogin() {
     return errs;
   };
 
-  const handleGoogle = () => {
-    setLoading(true);
-    setTimeout(() => {
+  const handleGoogleCredential = async (credential) => {
+    try {
+      setLoading(true);
+      const res = await apiClient.post('/auth/google-login', { credential });
+      const { accessToken, user } = res.data?.data || {};
+
+      if (!accessToken) {
+        showToast('error', 'Login failed: missing access token');
+        return;
+      }
+
+      saveAccessToken(accessToken);
+      showToast('success', `Welcome ${user?.email || ''}`.trim());
+      navigate('/', { replace: true });
+    } catch (err) {
+      const status = err?.response?.status;
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Google login failed';
+
+      if (status === 404 && (err?.response?.data?.code === 'USER_NOT_FOUND' || err?.response?.data?.code === 'USER_NOT_FOUND')) {
+        showToast('error', 'User not found in database');
+        return;
+      }
+
+      showToast('error', message);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const handleLogin = () => {
@@ -111,19 +140,6 @@ export default function PCDPLogin() {
 
   return (
     <div style={styles.page}>
-      {/* TOAST */}
-      {toast && (
-        <div
-          style={{
-            ...styles.toast,
-            background: toast.type === 'success' ? '#22c55e' : '#ef4444',
-          }}
-        >
-          <span>{toast.type === 'success' ? '✅' : '❌'}</span>
-          {toast.msg}
-        </div>
-      )}
-
       {/* LEFT PANEL */}
       <div style={styles.leftPanel}>
         {/* Animated particles */}
@@ -458,48 +474,16 @@ export default function PCDPLogin() {
           </div>
 
           {/* Google */}
-          <button
-            onClick={handleGoogle}
-            disabled={loading}
-            onMouseEnter={() => setGoogleHover(true)}
-            onMouseLeave={() => setGoogleHover(false)}
-            style={{
-              ...styles.googleBtn,
-              background: googleHover ? '#eff6ff' : '#fff',
-              borderColor: googleHover ? '#93c5fd' : '#dbeafe',
-            }}
-          >
-            <div style={styles.googleAvatar}>A</div>
-            <div style={styles.googleInfo}>
-              <span style={styles.googleName}>Sign in as ATCHAYARAJ</span>
-              <span style={styles.googleEmail}>
-                atchayarajm.it24@bitsathy.ac.in
-              </span>
-            </div>
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                fill="#4285F4"
-              />
-              <path
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                fill="#34A853"
-              />
-              <path
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                fill="#FBBC05"
-              />
-              <path
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                fill="#EA4335"
-              />
-            </svg>
-          </button>
+          <div style={styles.googleBtn}>
+            <GoogleLogin
+              onSuccess={(res) => handleGoogleCredential(res?.credential)}
+              onError={() => showToast('error', 'Google login failed')}
+              useOneTap={false}
+              theme="outline"
+              size="large"
+              width="360"
+            />
+          </div>
 
           <p style={styles.footer}>© 2024 PCDP Portal · Bitsathy</p>
         </div>

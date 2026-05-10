@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
-//import routes files
+import authRoutes from './features/auth/auth.routes.js';
 
 const app = express();
 
@@ -42,6 +42,8 @@ app.get('/health', (req, res) => {
     });
 });
 
+app.use('/api/auth', authRoutes);
+
 // Global error handler
 app.use((err, req, res, next) => {
     console.error('Global error:', err);
@@ -52,3 +54,5 @@ app.use((err, req, res, next) => {
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
 });
+
+export default app;

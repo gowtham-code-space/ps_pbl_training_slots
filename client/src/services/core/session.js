@@ -46,7 +46,7 @@ export const silentRefresh = async () => {
     refreshPromise = (async () => {
         try {
             const response = await axios.post(
-                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/auth/refresh`,
+                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/auth/refresh`,
                 {},
                 { withCredentials: true } // Send HttpOnly cookie
             );
@@ -80,7 +80,7 @@ export const refreshAccessToken = async () => {
     refreshPromise = (async () => {
         try {
             const response = await axios.post(
-                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'}/auth/refresh`,
+                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/auth/refresh`,
                 {},
                 { withCredentials: true }
             );

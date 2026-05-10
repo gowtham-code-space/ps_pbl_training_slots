@@ -1,6 +1,6 @@
 import { OAuth2Client } from 'google-auth-library';
 import dotenv from 'dotenv';
-import { generateAccessToken, generateRefreshToken, hashRefreshToken, compareRefreshToken } from '../utils/jwt.js';
+import { generateAccessToken, generateRefreshToken, hashRefreshToken, compareRefreshToken } from '../../utils/jwt.js';
 import * as authModel from './auth.model.js';
 
 dotenv.config();
@@ -13,56 +13,46 @@ const issueSessionForEmail = async (email, nameFallback = '') => {
     }
 
     let user = await authModel.getUserByEmail(email);
-    let isNewUser = false;
 
     if (!user) {
-        const defaultName = nameFallback || email.split('@')[0] || 'New User';
-        const newUserResult = await authModel.createUserFromGoogle(email, defaultName);
-        user = await authModel.getUserById(newUserResult.user_id);
-        isNewUser = true;
+        const err = new Error('User not found. Account creation is not allowed.');
+        err.code = 'USER_NOT_FOUND';
+        err.googleData = { email, name: nameFallback || null };
+        throw err;
+    }
+
+    if (user.is_active === 0 || user.is_active === false) {
+        throw new Error('User is inactive');
     }
 
     const tokenPayload = {
         user_id: user.user_id,
-        role_id: user.role_id
+        role_id: Number(user.role_id)
     };
 
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
     const refreshTokenHash = hashRefreshToken(refreshToken);
     await authModel.storeRefreshTokenHash(user.user_id, refreshTokenHash);
+    await authModel.updateLastLoginAt(user.user_id);
 
     return {
         success: true,
         message: 'Login successful',
         accessToken,
         refreshToken,
-        isNewUser,
+        isNewUser: false,
         user: {
             user_id: user.user_id,
-            role_id: user.role_id,
-            name: user.name,
-            gmail: user.gmail,
+            role_id: Number(user.role_id),
             role_name: user.role_name,
-            business_id: user.business_id,
-            branch_id: user.branch_id,
-            entity_id: user.entity_id || null
+            email: user.email
         }
     };
 };
 
 export const verifyGoogleToken = async (credential) => {
     try {
-        // Development fallback for mobile email-based login flow.
-        // In production, require a valid Google ID token.
-        const looksLikeEmail = typeof credential === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credential);
-        if (looksLikeEmail) {
-            if (process.env.NODE_ENV === 'production') {
-                throw new Error('Invalid Google credential');
-            }
-            return issueSessionForEmail(credential);
-        }
-
         const ticket = await client.verifyIdToken({
             idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID,

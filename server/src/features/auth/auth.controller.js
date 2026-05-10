@@ -1,7 +1,8 @@
-import { badRequestResponse, successResponse, unauthorizedResponse, internalServerErrorResponse } from '../utils/response.js';
+import { badRequestResponse, successResponse, unauthorizedResponse, internalServerErrorResponse } from '../../utils/response.js';
 import { verifyGoogleToken, refreshAccessToken, logout } from './auth.services.js';
-import { verifyRefreshToken } from '../utils/jwt.js';
+import { verifyRefreshToken } from '../../utils/jwt.js';
 import { getUserById } from './auth.model.js';
+import { getRoleMap } from './auth.model.js';
 
 export const googleLoginHandler = async (req, res) => {
     try {
@@ -19,10 +20,7 @@ export const googleLoginHandler = async (req, res) => {
         
         return successResponse(res, result.message, {
             accessToken: result.accessToken,
-            user_id: result.user.user_id,
-            role_id: result.user.role_id,
-            branch_id: result.user.branch_id ?? null,
-            entity_id: result.user.entity_id ?? null,
+            user: result.user,
             isNewUser: result.isNewUser
         });
 
@@ -108,18 +106,26 @@ export const getUserDetailsHandler = async (req, res) => {
 
         return successResponse(res, 'User details fetched successfully', {
             user_id: user.user_id,
-            name: user.name,
-            gmail: user.gmail,
-            phone_number: user.phone_number,
+            email: user.email,
             role_id: user.role_id,
             role_name: user.role_name,
-            branch_id: user.branch_id,
-            business_id: user.business_id,
-            entity_id: user.entity_id ?? null,
-            entity_name: user.entity_name ?? null
+            is_active: user.is_active,
+            last_login_at: user.last_login_at,
+            created_at: user.created_at,
+            updated_at: user.updated_at
         });
     } catch (error) {
         console.error('Error in getUserDetailsHandler:', error);
         return internalServerErrorResponse(res, error.message || 'Failed to fetch user details');
+    }
+};
+
+export const getRolesHandler = async (req, res) => {
+    try {
+        const roles = await getRoleMap();
+        return successResponse(res, 'Roles fetched successfully', { roles });
+    } catch (error) {
+        console.error('Error in getRolesHandler:', error);
+        return internalServerErrorResponse(res, error.message || 'Failed to fetch roles');
     }
 };
