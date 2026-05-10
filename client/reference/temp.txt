@@ -1,0 +1,24 @@
+src/
+├── App.jsx
+├── data/
+│   └── index.js          (all data: faculty, venues, slots, students...)
+├── store/
+│   └── useStore.js       (useState/context for shared state)
+├── components/
+│   ├── Header.jsx
+│   ├── Toast.jsx
+│   └── modals/
+│       ├── TransferModal.jsx
+│       ├── AddSlotModal.jsx
+│       └── VenueMapModal.jsx
+└── pages/
+    ├── Dashboard.jsx
+    ├── VenueAllocation.jsx
+    ├── FacultyAllocation.jsx
+    ├── Students.jsx
+    ├── Approvals.jsx
+    ├── PSSlots.jsx
+    ├── PBLSlots.jsx
+    ├── Reports.jsx
+    ├── Settings.jsx
+    └── Notifications.jsx
