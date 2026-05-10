@@ -23,23 +23,6 @@ export const authMiddleware = async (req, res, next) => {
         return unauthorizedResponse(res, 'Authentication failed');
     }
 };
-export const optionalAuthMiddleware = (req, res, next) => {
-    try {
-        const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            const accessToken = authHeader.split(' ')[1];
-            
-            const decoded = verifyAccessToken(accessToken);
-            if (decoded) {
-                req.user = decoded;
-                req.accessToken = accessToken;
-            }
-        }
-        next();
-    } catch (error) {
-        next();
-    }
-};
 
 export const setRefreshTokenCookie = (res, refreshToken) => {
     res.cookie('refreshToken', refreshToken, {
