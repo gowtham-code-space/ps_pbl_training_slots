@@ -1,10 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import authRoutes from './features/auth/auth.routes.js';
+import pointsRoutes from './features/points/points.routes.js';
+import trainingRoutes from './features/training/training.routes.js';
 
 const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -42,7 +49,13 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Static course assets
+app.use('/courses/ps_courses', express.static(path.join(__dirname, 'courses', 'ps_courses')));
+app.use('/courses/pbl_courses', express.static(path.join(__dirname, 'courses', 'pbl_courses')));
+
 app.use('/api/auth', authRoutes);
+app.use('/api/points', pointsRoutes);
+app.use('/api/training', trainingRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

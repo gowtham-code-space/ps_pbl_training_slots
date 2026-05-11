@@ -7,7 +7,7 @@ dotenv.config();
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const issueSessionForEmail = async (email, nameFallback = '') => {
+const issueSessionForEmail = async (email, nameFallback = '', picture = null) => {
     if (!email) {
         throw new Error('Email not found in credential');
     }
@@ -25,9 +25,22 @@ const issueSessionForEmail = async (email, nameFallback = '') => {
         throw new Error('User is inactive');
     }
 
+    let regNum = null;
+    let actualName = nameFallback;
+    if (Number(user.role_id) === 1) { // Student
+        const student = await authModel.getStudentByUserId(user.user_id);
+        if (student) {
+            regNum = student.reg_num;
+            actualName = student.name || nameFallback;
+        }
+    }
+
     const tokenPayload = {
         user_id: user.user_id,
-        role_id: Number(user.role_id)
+        role_id: Number(user.role_id),
+        name: actualName,
+        reg_num: regNum,
+        picture: picture || null,
     };
 
     const accessToken = generateAccessToken(tokenPayload);
@@ -46,7 +59,10 @@ const issueSessionForEmail = async (email, nameFallback = '') => {
             user_id: user.user_id,
             role_id: Number(user.role_id),
             role_name: user.role_name,
-            email: user.email
+            email: user.email,
+            name: actualName,
+            reg_num: regNum,
+            picture: picture || null,
         }
     };
 };
@@ -61,7 +77,8 @@ export const verifyGoogleToken = async (credential) => {
         const payload = ticket.getPayload();
         const email = payload.email;
         const name = payload.name;
-        return issueSessionForEmail(email, name);
+        const picture = payload.picture;
+        return issueSessionForEmail(email, name, picture);
     } catch (error) {
         console.error('Error verifying Google token:', error);
         throw error;
@@ -80,7 +97,10 @@ export const refreshAccessToken = async (refreshToken, user) => {
 
         const payload = {
             user_id: user.user_id,
-            role_id: user.role_id
+            role_id: user.role_id,
+            name: user.name,
+            reg_num: user.reg_num,
+            picture: user.picture || null,
         };
 
         const newAccessToken = generateAccessToken(payload);

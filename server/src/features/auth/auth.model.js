@@ -22,6 +22,12 @@ export const getUserByEmail = async (email) => {
 	return rows?.[0] ?? null;
 };
 
+export const getStudentByUserId = async (userId) => {
+	const query = `SELECT reg_num, name FROM students WHERE user_id = ? LIMIT 1`;
+	const [rows] = await db.execute(query, [userId]);
+	return rows?.[0] ?? null;
+};
+
 export const getUserById = async (userId) => {
 	const query = `
 		SELECT

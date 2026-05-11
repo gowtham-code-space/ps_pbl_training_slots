@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
-import { apiClient } from '../../services/core/apiClient';
-import { saveAccessToken } from '../../services/core/session';
+import { authService } from '../../services/features/authService';
 import { useStore } from '../../store/useStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -92,15 +91,13 @@ export default function PCDPLogin() {
   const handleGoogleCredential = async (credential) => {
     try {
       setLoading(true);
-      const res = await apiClient.post('/auth/google-login', { credential });
-      const { accessToken, user } = res.data?.data || {};
+      const payload = await authService.googleLogin(credential);
+      const { accessToken, user } = payload?.data || {};
 
-      if (!accessToken) {
-        showToast('error', 'Login failed: missing access token');
+      if (!payload?.success || !accessToken) {
+        showToast('error', payload?.message || 'Login failed');
         return;
       }
-
-      saveAccessToken(accessToken);
       showToast('success', `Welcome ${user?.email || ''}`.trim());
       navigate('/', { replace: true });
     } catch (err) {

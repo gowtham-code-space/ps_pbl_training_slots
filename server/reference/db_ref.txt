@@ -68,11 +68,33 @@ TABLE: venues
 TABLE: training_skills
 -----------------------------------------------------------------------
 - training_skill_id BIGINT         PK
+- category_id       BIGINT  FK -> training_skill_category(category_id)
 - skill_name        VARCHAR(255)
-- image_url         VARCHAR(255)
-- is_active         BOOLEAN
+- skill_type        enum("PS","PBL") NOT NULL
+- image_url          VARCHAR(255)
+- is_active         TINYINT
 - created_at        TIMESTAMP
 
+index:
+skill_type , category_id
+
+TABLE: training_skill_category
+    category_id   BIGINT PRIMARY KEY AUTO_INCREMENT
+    category_name VARCHAR(255) NOT NULL
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+  TABLE: skill_points
+    skill_point_id    BIGINT PRIMARY KEY AUTO_INCREMENT
+    training_skill_id BIGINT NOT NULL fk -> (training_skills (training_skill_id))
+    level_id BIGINT fk -> (skill_level (level_id))
+    point_type ENUM('REWARD_POINTS','ACTIVITY_POINTS') NOT NULL
+    points_alloted INT NOT NULL
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+    INDEXES:
+      INDEX idx_skill_points_training_skill (training_skill_id),
+      INDEX idx_skill_points_type (point_type)
 
 TABLE: venue_mapping
 -----------------------------------------------------------------------
@@ -155,7 +177,7 @@ TABLE: points
 - points_available  INT
 - created_at        TIMESTAMP
 - updated_at        TIMESTAMP
-
+- INDEX idx_point_type(point_type)
 INDEXES:
 - UNIQUE INDEX uq_student_point(student_id, point_type)
 - INDEX idx_points_student(student_id)

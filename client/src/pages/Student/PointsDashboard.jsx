@@ -1,23 +1,243 @@
-// PointsDashboard.jsx
-// Extracted from renderPoints(), loadRP(), renderRPTable(),
-// renderAP(), renderAPIndividual(), renderAPGroup(), genStudents(), genGroups()
-// in index_working.html — 100% identical logic and design
+// PointsDashboard.jsx — Complete Standalone File
+// Extracted 100% from index_working.html
+// CSS included inside — no external imports needed
+// Usage: import PointsDashboard from './PointsDashboard.jsx'
+//        <PointsDashboard onBack={() => {}} />
 
 import { useState, useEffect, useCallback } from 'react'
-import Header from '../../components/Header'
+import { useNavigate } from 'react-router-dom'
+import { authService } from '../../services/features/authService'
+import { pointsService } from '../../services/features/pointsService'
+import { useAuthStore } from '../../store/authStore'
 
-const SELECT_ARROW_BG =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"
+function UserIdentity({ user }) {
+  if (!user) return null
 
-const selectArrowStyle = {
-  backgroundImage: `url(\"${SELECT_ARROW_BG}\")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 8px center',
-  backgroundSize: '12px 12px',
+  const name = user?.name || 'User'
+  const avatarUrl = user?.picture || user?.avatar || user?.photo || user?.photoURL
+  const initials = user?.name ? user.name.charAt(0).toUpperCase() : 'U'
+
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:10, padding:'4px 14px 4px 4px', background:'var(--white)', border:'1.5px solid var(--border)', borderRadius:50 }}>
+      <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--purple-dim)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'var(--purple)', overflow:'hidden' }}>
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={name}
+            referrerPolicy="no-referrer"
+            style={{ width:'100%', height:'100%', objectFit:'cover' }}
+          />
+        ) : (
+          initials
+        )}
+      </div>
+      <div style={{ fontSize:13, fontWeight:800, color:'var(--text)', maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</div>
+    </div>
+  )
 }
 
-// ── Constants extracted from original ─────────────────────────
-const BASE_API = 'https://script.google.com/macros/s/AKfycbwUdK6oQZwo6SC-1eNUtQIyrNYp-RcKHSy-wBy-5RDonSuQaNDs_hdNfeXxpFnxsAx5/exec'
+// ── CSS — extracted from index_working.html ───────────────────
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap');
+
+  :root {
+    --purple:      #6c47ff;
+    --purple-dim:  rgba(108,71,255,0.1);
+    --purple-glow: rgba(108,71,255,0.3);
+    --bg:          #f0f2f8;
+    --white:       #fff;
+    --border:      #e5e4eb;
+    --text:        #1a1a2e;
+    --text2:       #6b7280;
+    --text3:       #9ca3af;
+    --green:       #10b981;
+    --red:         #ef4444;
+    --gold:        #f59e0b;
+    --silver:      #9ca3af;
+    --bronze:      #b87a3c;
+    --font-head:   'Outfit', sans-serif;
+    --font-body:   'Plus Jakarta Sans', sans-serif;
+  }
+  body.dark-mode {
+    --bg:#0f0f1a; --white:#1a1a2e; --border:#2d2d4e;
+    --text:#e8e6f0; --text2:#a89ec9; --text3:#6b6b8a;
+  }
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  html, body, #root { min-height:100vh; width:100%; }
+  body { background:var(--bg); font-family:var(--font-body); color:var(--text); -webkit-font-smoothing:antialiased; }
+
+  /* HEADER */
+  .pt-header { background:var(--white); border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; justify-content:space-between; gap:12px; position:sticky; top:0; z-index:100; box-shadow:0 1px 8px rgba(0,0,0,0.05); }
+  .pt-header-icon { width:36px; height:36px; border-radius:10px; background:var(--purple-dim); display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .pt-header-title { font-size:18px; font-weight:800; color:var(--text); font-family:var(--font-head); }
+  .pt-header-sub { font-size:12px; color:var(--text3); margin-top:1px; }
+  .pt-dark-toggle { background:none; border:1.5px solid var(--border); border-radius:20px; padding:5px 11px; cursor:pointer; font-size:13px; color:var(--text2); display:flex; align-items:center; gap:5px; transition:all 0.2s; font-family:var(--font-body); font-weight:600; }
+  .pt-dark-toggle:hover { border-color:var(--purple); color:var(--purple); }
+  .pt-header-back { background:none; border:1.5px solid var(--border); border-radius:20px; padding:5px 11px; cursor:pointer; font-size:13px; color:var(--text2); display:flex; align-items:center; gap:6px; transition:all 0.2s; font-family:var(--font-body); font-weight:700; white-space:nowrap; }
+  .pt-header-back:hover { border-color:var(--purple); color:var(--purple); background:var(--purple-dim); }
+  .pt-icon-btn { width:36px; height:36px; border-radius:10px; background:none; border:1.5px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--text2); transition:all 0.2s; }
+  .pt-icon-btn:hover { border-color:var(--purple); color:var(--purple); background:var(--purple-dim); }
+  body.dark-mode .pt-header { background:#151525; border-bottom:1px solid #2d2d4e; }
+  body.dark-mode .pt-dark-toggle { background:#1f1f3a; border-color:#2d2d4e; color:#a89ec9; }
+  body.dark-mode .pt-header-back { background:#1f1f3a; border-color:#2d2d4e; color:#a89ec9; }
+  body.dark-mode .pt-icon-btn { background:#1f1f3a; border-color:#2d2d4e; color:#a89ec9; }
+
+  /* CONTENT */
+  .pt-content { padding:16px 24px 32px; }
+
+  /* BACK BUTTON */
+  .pt-section-back { display:flex; align-items:center; gap:8px; background:var(--white); border:1.5px solid var(--border); color:var(--text2); padding:9px 16px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s; width:fit-content; margin-bottom:16px; font-family:var(--font-body); }
+  .pt-section-back:hover { background:var(--purple-dim); border-color:rgba(108,71,255,0.3); color:var(--purple); }
+
+  /* TABS */
+  .pt-tabs { display:flex; gap:6px; margin-bottom:16px; background:var(--white); border-radius:12px; padding:5px; border:1px solid var(--border); }
+  .pt-tab { flex:1; padding:10px 14px; border-radius:8px; border:none; background:transparent; font-size:13px; font-weight:700; color:var(--text2); cursor:pointer; transition:all 0.2s; font-family:var(--font-body); }
+  .pt-tab.active { background:var(--purple); color:#fff; box-shadow:0 2px 8px var(--purple-glow); }
+  body.dark-mode .pt-tabs { background:var(--white); border-color:var(--border); }
+
+  /* SUBTABS */
+  .pt-subtabs { display:flex; gap:8px; margin-bottom:14px; }
+  .pt-subtab { padding:7px 16px; border-radius:20px; border:1px solid var(--border); background:transparent; font-size:12px; font-weight:700; color:var(--text2); cursor:pointer; transition:all 0.2s; font-family:var(--font-body); }
+  .pt-subtab.active { background:var(--purple-dim); border-color:var(--purple-glow); color:var(--purple); }
+  body.dark-mode .pt-subtab { border-color:#2d2d4e; }
+
+  /* FILTERS */
+  .pt-filters { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .pt-select { padding:8px 28px 8px 12px; border:1.5px solid var(--border); border-radius:8px; background:var(--white); font-size:13px; font-weight:600; color:var(--text); outline:none; cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 8px center; font-family:var(--font-body); }
+  .pt-select:focus { border-color:var(--purple); }
+  .pt-search { flex:1; min-width:160px; padding:8px 14px; border:1.5px solid var(--border); border-radius:8px; background:var(--white); font-size:13px; color:var(--text); outline:none; font-family:var(--font-body); }
+  .pt-search:focus { border-color:var(--purple); }
+  .pt-search::placeholder { color:var(--text3); }
+  body.dark-mode .pt-select, body.dark-mode .pt-search { background:var(--white); border-color:var(--border); color:var(--text); }
+
+  /* MOTIVATOR */
+  .pt-motivator { background:linear-gradient(135deg,rgba(108,71,255,0.08),rgba(108,71,255,0.03)); border:1px solid rgba(108,71,255,0.2); border-left:3px solid var(--purple); border-radius:10px; padding:12px 16px; margin-bottom:14px; font-size:13px; color:#5b4fdb; font-weight:500; display:flex; align-items:center; gap:10px; }
+  .pt-motivator strong { font-weight:800; }
+  .pt-count { font-size:11px; color:var(--text3); text-align:right; margin-bottom:8px; }
+
+  /* TABLE */
+  .pt-table-card { background:var(--white); border-radius:14px; border:1px solid var(--border); overflow:hidden; }
+  .pt-table-head { display:grid; grid-template-columns:56px 1fr 100px 90px; padding:10px 18px; background:linear-gradient(90deg,#f8f7ff,#f0eeff); font-size:10px; font-weight:800; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+  .pt-table-head-with-btn { display:grid; grid-template-columns:56px 1fr 90px 100px 90px; padding:10px 18px; background:linear-gradient(90deg,#f8f7ff,#f0eeff); font-size:10px; font-weight:800; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+  .pt-table-head-pts { text-align:right; }
+  .pt-table-row { display:grid; grid-template-columns:56px 1fr 100px 90px; align-items:center; padding:12px 18px; border-bottom:1px solid #f3f4f6; transition:background 0.15s; animation:rowIn 0.3s ease both; }
+  .pt-table-row-with-btn { display:grid; grid-template-columns:56px 1fr 90px 100px 90px; align-items:center; padding:12px 18px; border-bottom:1px solid #f3f4f6; transition:background 0.15s; animation:rowIn 0.3s ease both; }
+  .pt-table-row:last-child, .pt-table-row-with-btn:last-child { border-bottom:none; }
+  .pt-table-row:hover, .pt-table-row-with-btn:hover { background:#f8f7ff; }
+  .pt-rank { font-size:15px; font-weight:900; color:var(--text3); }
+  .pt-name { font-size:13px; font-weight:700; color:var(--text); }
+  .pt-roll { font-size:11px; color:var(--text3); margin-top:2px; }
+  .pt-dept { font-size:12px; color:var(--text2); font-weight:600; }
+  .pt-pts  { font-size:16px; font-weight:900; color:var(--purple); text-align:right; }
+  body.dark-mode .pt-table-card { background:var(--white); }
+  body.dark-mode .pt-table-head, body.dark-mode .pt-table-head-with-btn { background:linear-gradient(90deg,#1f1f3a,#1a1a2e); }
+  body.dark-mode .pt-table-row:hover, body.dark-mode .pt-table-row-with-btn:hover { background:#1f1f3a; }
+  body.dark-mode .pt-table-row, body.dark-mode .pt-table-row-with-btn { border-bottom-color:#2d2d4e; }
+
+  /* DETAILS BUTTON */
+  .details-btn { display:inline-flex; align-items:center; gap:3px; padding:3px 9px; border-radius:20px; border:1px solid rgba(108,71,255,0.25); background:rgba(108,71,255,0.07); color:var(--purple); font-family:var(--font-body); font-size:10px; font-weight:700; cursor:pointer; transition:all 0.2s; white-space:nowrap; letter-spacing:0.5px; }
+  .details-btn:hover { background:rgba(108,71,255,0.16); border-color:var(--purple); }
+
+  /* GROUP CARDS */
+  .pt-grp-card { display:grid; grid-template-columns:48px 1fr auto; align-items:center; gap:16px; padding:16px 20px; background:var(--white); border:1px solid var(--border); border-radius:12px; margin-bottom:8px; transition:all 0.2s; animation:rowIn 0.3s ease both; }
+  .pt-grp-card:hover { border-color:rgba(108,71,255,0.3); box-shadow:0 2px 12px rgba(108,71,255,0.08); }
+  .pt-grp-rank { font-size:17px; font-weight:900; color:var(--text3); }
+  .pt-grp-id   { font-size:15px; font-weight:800; color:var(--text); }
+  .pt-grp-meta { font-size:12px; color:var(--text3); margin-top:3px; }
+  .pt-grp-pts-wrap { text-align:right; }
+  .pt-grp-pts { font-size:18px; font-weight:900; color:var(--purple); line-height:1.1; }
+  .pt-grp-avg-label { font-size:10px; color:var(--text3); margin-top:2px; letter-spacing:0.3px; }
+  body.dark-mode .pt-grp-card { background:var(--white); border-color:var(--border); }
+
+  /* ACTIVITY INDIVIDUAL TABLE */
+  .pt-act-table-card { background:var(--white); border-radius:14px; border:1px solid var(--border); overflow:hidden; }
+  .pt-act-table-head { display:grid; grid-template-columns:72px 1fr 140px 100px; padding:10px 20px; background:linear-gradient(90deg,#f8f7ff,#f0eeff); font-size:10px; font-weight:800; color:var(--text3); letter-spacing:1.5px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+  .pt-act-table-head-pts { text-align:right; }
+  .pt-act-table-row { display:grid; grid-template-columns:72px 1fr 140px 100px; align-items:center; padding:13px 20px; border-bottom:1px solid #f3f4f6; transition:background 0.15s; animation:rowIn 0.3s ease both; }
+  .pt-act-table-row:last-child { border-bottom:none; }
+  .pt-act-table-row:hover { background:#f8f7ff; }
+  .pt-act-rank { font-size:15px; font-weight:900; color:var(--text3); }
+  .pt-act-name { font-size:13px; font-weight:700; color:var(--text); }
+  .pt-act-roll-wrap { display:flex; align-items:center; gap:6px; margin-top:3px; }
+  .pt-act-roll { font-size:11px; color:var(--text3); }
+  .pt-act-year-badge { font-size:10px; font-weight:700; color:var(--purple); background:var(--purple-dim); border-radius:10px; padding:1px 7px; white-space:nowrap; }
+  .pt-act-dept-year { font-size:12px; font-weight:600; color:var(--text2); }
+  .pt-act-pts { font-size:16px; font-weight:900; color:var(--purple); text-align:right; }
+  .pt-act-count { font-size:11px; color:var(--text3); text-align:right; margin-bottom:8px; }
+  body.dark-mode .pt-act-table-card { background:var(--white); }
+  body.dark-mode .pt-act-table-head { background:linear-gradient(90deg,#1f1f3a,#1a1a2e); }
+  body.dark-mode .pt-act-table-row { border-bottom-color:#2d2d4e; }
+  body.dark-mode .pt-act-table-row:hover { background:#1f1f3a; }
+
+  /* SPINNER */
+  .pt-spinner-wrap { text-align:center; padding:40px 20px; }
+  .pt-spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--purple); border-radius:50%; animation:spin 0.7s linear infinite; margin:0 auto 12px; }
+  .pt-spinner-text { font-size:13px; color:var(--text2); font-weight:600; }
+  .pt-empty { text-align:center; padding:40px 20px; color:var(--text3); font-size:14px; }
+
+  /* ── DETAILS MODAL — extracted from index_working.html ── */
+  .pt-details-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.5);
+    z-index:10001; display:flex; align-items:center; justify-content:center;
+    padding:20px; backdrop-filter:blur(4px);
+  }
+  .pt-details-modal {
+    background:var(--white); border-radius:20px; width:100%;
+    max-width:560px; max-height:85vh; overflow:hidden;
+    display:flex; flex-direction:column;
+    animation:modalIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    box-shadow:0 24px 60px rgba(0,0,0,0.2);
+  }
+  .pt-details-header {
+    background:linear-gradient(135deg,#1e1b3a,#2d1f5e);
+    padding:20px 24px; display:flex; align-items:center;
+    justify-content:space-between; flex-shrink:0;
+  }
+  .pt-details-name { font-size:17px; font-weight:800; color:#fff; font-family:var(--font-head); }
+  .pt-details-roll { font-size:11px; color:rgba(255,255,255,0.6); margin-top:3px; letter-spacing:1px; }
+  .pt-details-close {
+    width:32px; height:32px; border-radius:50%;
+    border:1px solid rgba(255,255,255,0.2); background:transparent;
+    color:rgba(255,255,255,0.7); display:flex; align-items:center;
+    justify-content:center; cursor:pointer; font-size:16px; transition:all 0.2s;
+  }
+  .pt-details-close:hover { background:rgba(255,255,255,0.1); color:#fff; }
+  .pt-details-body {
+    overflow-y:auto; padding:20px;
+    display:flex; flex-direction:column; gap:14px; flex:1;
+  }
+  .pt-details-total {
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(108,71,255,0.07); border:1px solid rgba(108,71,255,0.2);
+    border-radius:10px; padding:16px 20px;
+  }
+  .pt-details-total-label { font-size:13px; font-weight:600; color:var(--text2); }
+  .pt-details-total-val { font-size:24px; font-weight:900; color:var(--purple); font-family:var(--font-head); }
+  .pt-details-group { border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:2px; }
+  .pt-details-group-hdr {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 16px; font-size:11px; font-weight:800;
+    letter-spacing:1px; text-transform:uppercase;
+  }
+  .pt-details-group-total { font-size:13px; font-weight:900; }
+  .pt-details-item {
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:12px; padding:11px 16px; border-top:1px solid var(--border); transition:background 0.15s;
+  }
+  .pt-details-item:hover { background:#f8f7ff; }
+  .pt-details-item-name { font-size:13px; font-weight:600; color:var(--text); line-height:1.4; }
+  .pt-details-item-date { font-size:11px; color:var(--text3); margin-top:2px; }
+  .pt-details-item-pts { font-size:14px; font-weight:800; color:var(--purple); white-space:nowrap; flex-shrink:0; }
+  body.dark-mode .pt-details-item:hover { background:#1f1f3a; }
+  body.dark-mode .pt-details-modal { background:var(--white); }
+
+  @keyframes rowIn  { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes spin   { to{transform:rotate(360deg)} }
+  @keyframes modalIn { from{opacity:0;transform:translateY(24px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+`
+
+// ── Constants ─────────────────────────────────────────────────
+const PRANESH_BASE = 'https://praneshjs-rewardpointssite.hf.space'
 
 const DEPTS = ['AGRI','AIDS','AIML','BIOMEDICAL','BT','CIVIL','CSBS','CSD','CSE','CT','EEE','ECE','EIE','FT','ISE','IT','MECH','MTRS']
 
@@ -30,198 +250,358 @@ const DEPT_NAMES = {
   IT:'Information Technology', MECH:'Mechanical Engg', MTRS:'Mechatronics',
 }
 
-const DEPT_CODES = {
-  AGRI:'AGRI', AIDS:'AIDS', AIML:'AIML', BIOMEDICAL:'BM', BT:'BT',
-  CIVIL:'CIVIL', CSBS:'CSBS', CSD:'CSD', CSE:'CSE', CT:'CT',
-  EEE:'EEE', ECE:'ECE', EIE:'EIE', FT:'FT', ISE:'ISE',
-  IT:'IT', MECH:'MECH', MTRS:'MTRS',
+// ── getCatGroupStyle — extracted from original ────────────────
+function getCatGroupStyle(cat) {
+  const c = (cat||'').toUpperCase()
+  if (c.includes('P SKILL') || c.includes('SKILL'))
+    return { bg:'#eff6ff', border:'rgba(59,130,246,0.3)', hdr:'#1e40af' }
+  if (c.includes('INITIATIVE'))
+    return { bg:'#f0fdf4', border:'rgba(34,197,94,0.3)',  hdr:'#15803d' }
+  if (c.includes('HACKATHON') || c.includes('TECHNICAL'))
+    return { bg:'#fdf4ff', border:'rgba(168,85,247,0.3)', hdr:'#7e22ce' }
+  if (c.includes('PROJECT'))
+    return { bg:'#fff7ed', border:'rgba(249,115,22,0.3)', hdr:'#c2410c' }
+  return { bg:'#f8fafc', border:'rgba(148,163,184,0.3)', hdr:'#475569' }
 }
 
-const FN = ['Aarav','Aditya','Akash','Anand','Arun','Arjun','Ashwin','Balaji','Bharath',
-  'Deepak','Gokul','Gowtham','Harish','Karthik','Kumar','Lokesh','Madhan','Manoj',
-  'Naveen','Nikhil','Pavan','Pradeep','Rahul','Raja','Ram','Ravi','Rohit','Sathish',
-  'Senthil','Vignesh','Vijay','Vikram','Ananya','Aishwarya','Divya','Gayathri',
-  'Harini','Janani','Kavitha','Keerthana','Lakshmi','Meenakshi','Nithya','Priya',
-  'Ramya','Revathi','Sangeetha','Sneha','Swetha','Varsha']
-
-const LN = ['A','B','C','D','G','J','K','L','M','N','P','R','S','T','V']
-
-// ── sr, rn — extracted from original ──────────────────────────
-function sr(s) { let x = Math.sin(s) * 10000; return x - Math.floor(x) }
-function rn(s) {
-  return FN[Math.floor(sr(s) * FN.length)] + ' ' + LN[Math.floor(sr(s + 1) * LN.length)]
-}
-
-// ── genStudents — extracted from genStudents() in original ────
-function genStudents() {
-  const st = []
-  const per = Math.floor(1600 / 18)
-  DEPTS.forEach((dept, di) => {
-    const cnt = di < 1600 % 18 ? per + 1 : per
-    const dc = DEPT_CODES[dept]
-    for (let i = 0; i < cnt; i++) {
-      const roll = `7376242${dc}${String(101 + i).padStart(3, '0')}`
-      const seed = roll.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-      st.push({ roll, name: rn(seed), dept, year: '2nd', points: Math.floor(sr(seed) * 1001) + 10000 })
+// ── parseCourseDetails — extracted from original ──────────────
+function parseCourseDetails(raw) {
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean)
+  const courses = []
+  let totalPoints = 0
+  const tm = raw.match(/TOTAL REWARD POINTS FROM ACTIVITIES:\s*([\d.]+)/i)
+  if (tm) totalPoints = parseFloat(tm[1])
+  for (const line of lines) {
+    const m2 = line.match(/^\d+\.\s+(.+?)\s*-\s*\(([^)]+)\)\s*-\s*([\d.]+)\s*pts$/i)
+    if (m2) {
+      const [,lbl,dr,pts] = m2
+      const [cat,...np] = lbl.trim().split(':')
+      courses.push({ category:cat.trim(), name:np.length?np.join(':').trim():lbl.trim(), dateRange:dr.trim(), points:parseFloat(pts) })
+      continue
     }
-  })
-  DEPTS.forEach((dept, di) => {
-    const cnt = di < 1600 % 18 ? per + 1 : per
-    const dc = DEPT_CODES[dept]
-    for (let i = 0; i < cnt; i++) {
-      const roll = `7376243${dc}${String(101 + i).padStart(3, '0')}`
-      const seed = roll.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-      st.push({ roll, name: rn(seed), dept, year: '1st', points: Math.floor(sr(seed) * 801) + 8000 })
+    const m1 = line.match(/^\d+\.\s+(.+?)\s*-\s*([\d.]+)\s*pts$/i)
+    if (m1) {
+      const [,lbl,pts] = m1
+      const [cat,...np] = lbl.trim().split(':')
+      courses.push({ category:cat.trim(), name:np.length?np.join(':').trim():lbl.trim(), dateRange:null, points:parseFloat(pts) })
     }
-  })
-  return st
-}
-
-// ── genGroups — extracted from genGroups() in original ────────
-function genGroups(students) {
-  const second = students.filter(s => s.year === '2nd')
-  const first  = students.filter(s => s.year === '1st')
-  const ROLES  = ['Captain','Vice Captain','Manager','Strategist','IPR Member','Member','Member','Member','Member','Member']
-  let p2 = 0, p1 = 0
-  const groups = []
-  for (let g = 1; g <= 213; g++) {
-    const grp = { id: `A#${100000 + g}`, members: [] }
-    const used = new Set()
-    for (let m = 0; m < 10; m++) {
-      const pool = m < 7 ? second : first
-      const ptr  = m < 7 ? p2 : p1
-      if (pool[ptr % pool.length]) {
-        grp.members.push({ ...pool[ptr % pool.length], role: ROLES[m] })
-        used.add(ptr % pool.length)
-        if (m < 7) p2++; else p1++
-      }
-    }
-    grp.totalPts = grp.members.reduce((a, m) => a + m.points, 0)
-    grp.avgPts   = Math.round(grp.totalPts / (grp.members.length || 1))
-    groups.push(grp)
   }
-  return groups
+  return { courses, totalPoints }
 }
 
-// ── Rank medal — same as original ────────────────────────────
-function RankCell({ rank }) {
-  if (rank === 0) return <span style={{ fontSize:18, color:'#f59e0b' }}>🥇</span>
-  if (rank === 1) return <span style={{ fontSize:18, color:'#9ca3af' }}>🥈</span>
-  if (rank === 2) return <span style={{ fontSize:18, color:'#b87a3c' }}>🥉</span>
-  return <span className="inline-block text-[15px] font-black text-[var(--text3)]">#{rank + 1}</span>
-}
+// ── DetailsModal — Reward Points student details ──────────────
+// Extracted from openDetailsModal() + fetchDetailsData() in original
+function DetailsModal({ isOpen, onClose, roll, name }) {
+  const [status, setStatus] = useState('loading')
+  const [raw,    setRaw]    = useState('')
+  const [errMsg, setErrMsg] = useState('')
 
-// ── Spinner — same as original ────────────────────────────────
-function Spinner({ text }) {
+  useEffect(() => {
+    if (!isOpen || !roll) return
+    setStatus('loading'); setRaw(''); setErrMsg('')
+    fetchData(roll)
+  }, [isOpen, roll])
+
+  async function fetchData(r) {
+    try {
+      const payload = await pointsService.getStudentTransactions(r)
+      const data = payload?.data?.items || []
+      if (!data.length) {
+        setErrMsg(`No data found for ${r}.`); setStatus('error')
+      } else {
+        setRaw(data); setStatus('done')
+      }
+    } catch(err) {
+      setErrMsg(err.message||'Failed to fetch.'); setStatus('error')
+    }
+  }
+
+  if (!isOpen) return null
+
+  const { courses, totalPoints } = status==='done' ? (() => {
+    const txRaw = Array.isArray(raw) ? raw : []
+    const tx = txRaw.filter(t => t.point_type === 'REWARD_POINTS')
+    const total = tx.reduce((a, t) => a + Number(t.points_earned||0), 0)
+    const mapped = tx.map(t => {
+      let cat = 'Other', name = t.point_source
+      if (typeof name === 'string' && name.includes(':')) {
+        const parts = name.split(':')
+        cat = parts[0].trim()
+        name = parts.slice(1).join(':').trim()
+      }
+      return { category: cat, name, dateRange: new Date(t.created_at).toLocaleDateString(), points: Number(t.points_earned||0) }
+    })
+    return { courses: mapped, totalPoints: total }
+  })() : { courses:[], totalPoints:0 }
+  const grouped = {}
+  for (const c of courses) {
+    if (!grouped[c.category]) grouped[c.category] = []
+    grouped[c.category].push(c)
+  }
+
   return (
-    <div className="text-center py-10 px-5">
-      <div
-        className="mx-auto mb-3 h-8 w-8 rounded-full border-[3px] border-[var(--border)] border-t-[var(--purple)]"
-        style={{ animation: 'ptSpin 0.7s linear infinite' }}
-      />
-      <div className="text-[13px] font-semibold text-[var(--text2)]">{text}</div>
+    <div className="pt-details-overlay" onClick={e=>{if(e.target===e.currentTarget) onClose()}}>
+      <div className="pt-details-modal">
+        {/* Header — dark purple same as image */}
+        <div className="pt-details-header">
+          <div>
+            <div className="pt-details-name">{name}</div>
+            <div className="pt-details-roll">{roll}</div>
+          </div>
+          <button className="pt-details-close" onClick={onClose}>✕</button>
+        </div>
+        {/* Body */}
+        <div className="pt-details-body">
+          {status==='loading' && (
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:14,padding:'50px 20px',color:'var(--text2)',fontSize:14}}>
+              <div className="pt-spinner"/>
+              <p>Fetching details for <strong>{roll}</strong>...</p>
+            </div>
+          )}
+          {status==='error' && (
+            <div style={{textAlign:'center',padding:'50px 20px',color:'var(--text3)',fontSize:14}}>{errMsg}</div>
+          )}
+          {status==='done' && (
+            <>
+              {!courses.length
+                ? <div style={{textAlign:'center',padding:'50px 20px',color:'var(--text3)',fontSize:14}}>No course activity found.</div>
+                : <>
+                  {/* Total points — same as image */}
+                  {totalPoints>0 && (
+                    <div className="pt-details-total">
+                      <span className="pt-details-total-label">Total Points from Activities</span>
+                      <span className="pt-details-total-val">{totalPoints.toLocaleString()} pts</span>
+                    </div>
+                  )}
+                  {/* Category groups — same as image */}
+                  {Object.entries(grouped).map(([cat, items]) => {
+                    const s = getCatGroupStyle(cat)
+                    const grpTotal = items.reduce((a,c)=>a+c.points,0)
+                    return (
+                      <div className="pt-details-group" key={cat}>
+                        <div className="pt-details-group-hdr" style={{background:s.bg, color:s.hdr, borderBottom:`1px solid ${s.border}`}}>
+                          <span>{cat}</span>
+                          <span className="pt-details-group-total">{grpTotal.toLocaleString()} PTS</span>
+                        </div>
+                        {items.map((c,i)=>(
+                          <div className="pt-details-item" key={i}>
+                            <div>
+                              <div className="pt-details-item-name">{c.name}</div>
+                              {c.dateRange && <div className="pt-details-item-date">{c.dateRange}</div>}
+                            </div>
+                            <div className="pt-details-item-pts">+{c.points.toLocaleString()} pts</div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })}
+                </>
+              }
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
 
-// ── RP Section ────────────────────────────────────────────────
-function RewardPoints() {
-  const [dept,   setDept]   = useState('BT')
+// ── GroupDetailsModal — extracted from openGroupDetails() ─────
+// Shows group members exactly like image 2
+function GroupDetailsModal({ isOpen, onClose, group }) {
+  const [members, setMembers] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!isOpen || !group?.group_id) return
+    let ignore = false
+    setLoading(true)
+    setError('')
+    pointsService.getGroupMembersPoints(group.group_id)
+      .then(res => { if(!ignore) setMembers(res?.data?.items||[]) })
+      .catch(err => { if(!ignore) setError('Failed to fetch members') })
+      .finally(() => { if(!ignore) setLoading(false) })
+    return () => { ignore = true }
+  }, [isOpen, group])
+
+  if (!isOpen || !group) return null
+
+  const roleOrder   = ['Captain','Vice Captain','Manager','Strategist']
+  const sorted      = [...members].sort((a,b) => {
+    const ai=roleOrder.indexOf(a.role_name), bi=roleOrder.indexOf(b.role_name)
+    if (ai!==-1&&bi!==-1) return ai-bi
+    if (ai!==-1) return -1
+    if (bi!==-1) return 1
+    return 0
+  })
+  const leaders     = sorted.filter(m=>roleOrder.includes(m.role_name))
+  const teamMembers = sorted.filter(m=>!roleOrder.includes(m.role_name))
+
+  return (
+    <div className="pt-details-overlay" onClick={e=>{if(e.target===e.currentTarget) onClose()}}>
+      <div className="pt-details-modal">
+        {/* Header */}
+        <div className="pt-details-header">
+          <div>
+            <div className="pt-details-name">{group.group_id || group.id}</div>
+            <div className="pt-details-roll">
+              {Number(group.member_count||group.members?.length||0)} members · Avg {Number(group.avg_points||group.avgPts||0).toLocaleString()} pts
+            </div>
+          </div>
+          <button className="pt-details-close" onClick={onClose}>✕</button>
+        </div>
+        {/* Body */}
+        <div className="pt-details-body">
+          {loading ? (
+            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:14,padding:'50px 20px',color:'var(--text2)',fontSize:14}}>
+              <div className="pt-spinner"/>
+              <p>Fetching members for <strong>{group.group_id}</strong>...</p>
+            </div>
+          ) : error ? (
+            <div style={{textAlign:'center',padding:'50px 20px',color:'var(--text3)',fontSize:14}}>{error}</div>
+          ) : (
+            <>
+              {/* Group average — same as image */}
+              <div className="pt-details-total">
+                <span className="pt-details-total-label" style={{fontSize:11,fontWeight:800,letterSpacing:1,textTransform:'uppercase'}}>Group Average</span>
+                <span style={{fontSize:22,fontWeight:900,color:'var(--purple)',fontFamily:'var(--font-head)'}}>
+                  {Number(group.avg_points||group.avgPts||0).toLocaleString()}
+                  <span style={{fontSize:12,fontWeight:600,marginLeft:4}}>avg pts</span>
+                </span>
+              </div>
+
+              {/* Leadership section — same as image */}
+              {leaders.length > 0 && (
+                <>
+                  <div style={{fontSize:11,fontWeight:800,letterSpacing:1,color:'var(--text2)',textTransform:'uppercase',marginBottom:4}}>
+                    Leadership
+                  </div>
+                  {leaders.map((m,i)=>(
+                    <div key={i} style={{borderBottom:'1px solid var(--border)',padding:'12px 4px'}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--purple)',marginBottom:4}}>{m.role_name}</div>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>{m.name}</div>
+                          <div style={{fontSize:11,color:'var(--text2)',marginTop:2}}>{m.reg_num}</div>
+                        </div>
+                        <div style={{fontSize:12,fontWeight:700,color:'var(--purple)',whiteSpace:'nowrap'}}>
+                          {m.points_available ? m.points_available.toLocaleString()+' pts' : '—'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Team Members section — same as image */}
+              {teamMembers.length > 0 && (
+                <>
+                  <div style={{fontSize:11,fontWeight:800,letterSpacing:1,color:'var(--text2)',textTransform:'uppercase',margin:'10px 0 4px'}}>
+                    Team Members ({teamMembers.length})
+                  </div>
+                  {teamMembers.map((m,i)=>(
+                    <div key={i} style={{borderBottom:'1px solid var(--border)',padding:'12px 4px'}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--text2)',marginBottom:4}}>
+                        Team Member {String(i+1).padStart(2,'0')}
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{m.name}</div>
+                          <div style={{fontSize:11,color:'var(--text2)',marginTop:2}}>{m.reg_num}</div>
+                        </div>
+                        <div style={{fontSize:12,fontWeight:700,color:'var(--purple)',whiteSpace:'nowrap'}}>
+                          {m.points_available ? m.points_available.toLocaleString()+' pts' : '—'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+
+function RankCell({rank}) {
+  return <span className="pt-rank">#{rank+1}</span>
+}
+function Spinner({text}) {
+  return <div className="pt-spinner-wrap"><div className="pt-spinner"/><div className="pt-spinner-text">{text}</div></div>
+}
+
+// ── Reward Points ─────────────────────────────────────────────
+function RewardPoints({ onOpenDetails }) {
+  const [dept,   setDept]   = useState('ALL')
   const [year,   setYear]   = useState('ALL')
   const [search, setSearch] = useState('')
   const [data,   setData]   = useState([])
   const [loading,setLoading]= useState(false)
   const [error,  setError]  = useState('')
 
-  // loadRP — extracted from loadRP() in original
-  const loadRP = useCallback(async (d) => {
-    setLoading(true); setError(''); setData([])
+  const loadRP = useCallback(async () => {
+    setLoading(true); setError('')
     try {
-      const res = await fetch(`${BASE_API}?dept=${encodeURIComponent(d)}`)
-      const json = await res.json()
-      setData(Array.isArray(json) ? json : [])
-    } catch(e) {
-      setError('Failed to load data. Check your connection.')
-    }
-    setLoading(false)
-  }, [])
+      const payload = await pointsService.getRewardRanking({
+        course: dept === 'ALL' ? undefined : dept,
+        year, search,
+        limit: search ? 200 : 20, offset: 0,
+      })
+      setData(payload?.data?.items || [])
+    } catch {
+      setError('Failed to load. Check connection.')
+      setData([])
+    } finally { setLoading(false) }
+  }, [dept, year, search])
 
-  useEffect(() => { loadRP(dept) }, [dept])
+  useEffect(() => {
+    const t = setTimeout(() => { loadRP() }, 250)
+    return () => clearTimeout(t)
+  }, [loadRP])
 
-  // renderRPTable filter logic — extracted from renderRPTable() in original
-  const yearCode = { 'ALL': null, '3rd': '23', '2nd': '24', '1st': '25' }
-  const sorted   = [...data].sort((a, b) => b.balance - a.balance)
-  const byYear   = yearCode[year] ? sorted.filter(s => s.roll?.substring(4,6) === yearCode[year]) : sorted
-  const q        = search.trim().toUpperCase()
-  const filtered = byYear.filter(s => !q || s.name?.toUpperCase().includes(q) || s.roll?.includes(q))
+  const sorted   = [...data].sort((a,b)=>Number(b.points_available||0)-Number(a.points_available||0))
+  const showRows = search ? sorted : sorted.slice(0,20)
 
   return (
     <div>
-      {/* Filters */}
-      <div className="mb-3.5 flex flex-wrap gap-2.5">
-        <select
-          className="cursor-pointer appearance-none rounded-lg border-[1.5px] border-[var(--border)] bg-[var(--white)] px-3 py-2 pr-7 text-[13px] font-semibold text-[var(--text)] outline-none focus:border-[var(--purple)]"
-          style={selectArrowStyle}
-          value={dept}
-          onChange={e => setDept(e.target.value)}
-        >
-          {DEPTS.map(d => <option key={d} value={d}>{DEPT_NAMES[d] || d}</option>)}
+      <div className="pt-filters">
+        <select className="pt-select" value={dept} onChange={e=>setDept(e.target.value)}>
+          <option value="ALL">All Departments</option>
+          {DEPTS.map(d=><option key={d} value={d}>{DEPT_NAMES[d]||d}</option>)}
         </select>
-        <select
-          className="cursor-pointer appearance-none rounded-lg border-[1.5px] border-[var(--border)] bg-[var(--white)] px-3 py-2 pr-7 text-[13px] font-semibold text-[var(--text)] outline-none focus:border-[var(--purple)]"
-          style={selectArrowStyle}
-          value={year}
-          onChange={e => setYear(e.target.value)}
-        >
+        <select className="pt-select" value={year} onChange={e=>setYear(e.target.value)}>
           <option value="ALL">All Years</option>
           <option value="3rd">3rd Year</option>
           <option value="2nd">2nd Year</option>
           <option value="1st">1st Year</option>
         </select>
-        <input
-          className="min-w-40 flex-1 rounded-lg border-[1.5px] border-[var(--border)] bg-[var(--white)] px-3.5 py-2 text-[13px] text-[var(--text)] outline-none placeholder:text-[var(--text3)] focus:border-[var(--purple)]"
-          placeholder="Search name or roll..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <input className="pt-search" placeholder="Search reg no (eg 7376242AL126)..." value={search} onChange={e=>setSearch(e.target.value)}/>
       </div>
-      <div className="mb-2 text-right text-[11px] text-[var(--text3)]">
-        Showing {filtered.length} of {byYear.length} students
-      </div>
-
-      {loading && <Spinner text={`Loading ${DEPT_NAMES[dept] || dept} rankings...`} />}
-      {error   && <div className="text-center py-10 px-5 text-[14px]" style={{ color:'var(--red)' }}>{error}</div>}
-
+      <div className="pt-count">Showing {showRows.length} students</div>
+      {loading && <Spinner text={`Loading ${dept==='ALL'?'all departments':(DEPT_NAMES[dept]||dept)} rankings...`}/>}
+      {error   && <div className="pt-empty" style={{color:'var(--red)'}}>{error}</div>}
       {!loading && !error && (
-        <div className="overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--white)]">
-          <div className="grid grid-cols-[56px_1fr_100px_90px] border-b border-[var(--border)] bg-[linear-gradient(90deg,var(--head-grad-from),var(--head-grad-to))] px-[18px] py-2.5 text-[10px] font-extrabold uppercase tracking-[1.5px] text-[var(--text3)]">
-            <div>Rank</div>
-            <div>Student</div>
-            <div>Department</div>
-            <div className="text-right">Points</div>
+        <div className="pt-table-card">
+          <div className="pt-table-head-with-btn">
+            <div>Rank</div><div>Student</div><div>Details</div><div>Department</div>
+            <div className="pt-table-head-pts">Points</div>
           </div>
-          {filtered.length === 0
-            ? <div className="text-center py-10 px-5 text-[14px] text-[var(--text3)]">No students found.</div>
-            : filtered.map((s, i) => {
-              const globalRank = byYear.indexOf(s)
-              const yrCode = s.roll?.substring(4,6)
-              const yrTxt  = yrCode==='23'?'3rd Year':yrCode==='24'?'2nd Year':'1st Year'
+          {showRows.length===0
+            ? <div className="pt-empty">No students found.</div>
+            : showRows.map((s,i)=>{
+              const y=Number(s.year_of_study)
+              const yrTxt=y===1?'1st Year':y===2?'2nd Year':y===3?'3rd Year':''
               return (
-                <div
-                  className="grid grid-cols-[56px_1fr_100px_90px] items-center border-b border-b-[var(--row-border)] px-[18px] py-3 transition-colors last:border-b-0 hover:bg-[var(--row-hover)]"
-                  key={s.roll || i}
-                  style={{
-                    animation: 'ptRowIn 0.3s ease both',
-                    animationDelay: `${Math.min(i,20)*0.03}s`,
-                  }}
-                >
-                  <div><RankCell rank={globalRank} /></div>
-                  <div>
-                    <div className="text-[13px] font-bold text-[var(--text)]">{s.name}</div>
-                    <div className="mt-0.5 text-[11px] text-[var(--text3)]">{s.roll} · {yrTxt}</div>
-                  </div>
-                  <div className="text-[12px] font-semibold text-[var(--text2)]">{s.dept || dept}</div>
-                  <div className="text-right text-[16px] font-black text-[var(--purple)]">{(s.balance||0).toLocaleString()}</div>
+                <div className="pt-table-row-with-btn" key={s.reg_num||i} style={{animationDelay:`${Math.min(i,20)*0.03}s`}}>
+                  <div><RankCell rank={i}/></div>
+                  <div><div className="pt-name">{s.name}</div><div className="pt-roll">{s.reg_num} · {yrTxt}</div></div>
+                  <div><button className="details-btn" onClick={()=>onOpenDetails?.(s.reg_num,s.name)}>Details</button></div>
+                  <div className="pt-dept">{s.course||dept}</div>
+                  <div className="pt-pts">{Number(s.points_available||0).toLocaleString()}</div>
                 </div>
               )
             })
@@ -232,159 +612,151 @@ function RewardPoints() {
   )
 }
 
-// ── AP Section ────────────────────────────────────────────────
-function ActivityPoints({ students, groups }) {
-  const [apTab,  setApTab]  = useState('individual')
-  const [apYear, setApYear] = useState('ALL')
-  const [apDept, setApDept] = useState('ALL')
-  const [apSearch,setApSearch]=useState('')
-  const [grpSearch,setGrpSearch]=useState('')
+// ── Activity Points ───────────────────────────────────────────
+function ActivityPoints({ onOpenGroup }) {
+  const [apTab,    setApTab]    = useState('individual')
+  const [apYear,   setApYear]   = useState('ALL')
+  const [apDept,   setApDept]   = useState('BT')
+  const [apSearch, setApSearch] = useState('')
+  const [grpSearch,setGrpSearch]= useState('')
+  const [indData,   setIndData]   = useState([])
+  const [indLoading,setIndLoading]= useState(false)
+  const [indError,  setIndError]  = useState('')
+  const [grpData,   setGrpData]   = useState([])
+  const [grpLoading,setGrpLoading]= useState(false)
+  const [grpError,  setGrpError]  = useState('')
 
-  // Individual filter — extracted from filterAP() in original
-  const filtInd = students.filter(s => {
-    const matchYear = apYear === 'ALL' || s.year === apYear
-    const matchDept = apDept === 'ALL' || s.dept === apDept
-    const q = apSearch.trim().toUpperCase()
-    const matchQ = !q || s.name.toUpperCase().includes(q) || s.roll.includes(q)
-    return matchYear && matchDept && matchQ
-  }).sort((a,b) => b.points - a.points)
+  const loadIndividuals = useCallback(async () => {
+    setIndLoading(true); setIndError('')
+    try {
+      const payload = await pointsService.getActivityIndividualRanking({
+        course: apDept==='ALL'?undefined:apDept,
+        year:apYear, search:apSearch,
+        limit:apSearch?200:100, offset:0,
+      })
+      setIndData(payload?.data?.items||[])
+    } catch { setIndError('Failed to load. Check connection.'); setIndData([]) }
+    finally { setIndLoading(false) }
+  }, [apDept,apYear,apSearch])
 
-  // Group filter — extracted from filterAPGroup() in original
-  const filtGrp = groups.filter(g => {
-    const q = grpSearch.trim().toUpperCase()
-    return !q || g.id.includes(q)
-  }).sort((a,b) => b.avgPts - a.avgPts)
+  const loadGroups = useCallback(async () => {
+    setGrpLoading(true); setGrpError('')
+    try {
+      const payload = await pointsService.getGroupAverageRanking({
+        search:grpSearch, limit:grpSearch?200:20, offset:0,
+      })
+      setGrpData(payload?.data?.items||[])
+    } catch { setGrpError('Failed to load. Check connection.'); setGrpData([]) }
+    finally { setGrpLoading(false) }
+  }, [grpSearch])
+
+  useEffect(() => {
+    if (apTab!=='individual') return
+    const t = setTimeout(()=>loadIndividuals(),250)
+    return ()=>clearTimeout(t)
+  }, [apTab,loadIndividuals])
+
+  useEffect(() => {
+    if (apTab!=='group') return
+    const t = setTimeout(()=>loadGroups(),250)
+    return ()=>clearTimeout(t)
+  }, [apTab,loadGroups])
+
+  const filtInd = [...indData].sort((a,b)=>Number(b.points_available||0)-Number(a.points_available||0))
+  const filtGrp = [...grpData].sort((a,b)=>Number(b.avg_points||0)-Number(a.avg_points||0))
+  const showInd = apSearch?filtInd:filtInd.slice(0,100)
+  const showGrp = grpSearch?filtGrp:filtGrp.slice(0,20)
 
   return (
     <div>
-      {/* Sub-tabs — same as pt-subtabs in original */}
-      <div className="mb-3.5 flex gap-2">
-        <button
-          className={
-            `cursor-pointer rounded-full border px-4 py-[7px] text-[12px] font-bold transition-colors ` +
-            (apTab === 'individual'
-              ? 'border-[var(--purple-glow)] bg-[var(--purple-dim)] text-[var(--purple)]'
-              : 'border-[var(--border)] bg-transparent text-[var(--text2)]')
-          }
-          onClick={() => setApTab('individual')}>Individual Ranking</button>
-        <button
-          className={
-            `cursor-pointer rounded-full border px-4 py-[7px] text-[12px] font-bold transition-colors ` +
-            (apTab === 'group'
-              ? 'border-[var(--purple-glow)] bg-[var(--purple-dim)] text-[var(--purple)]'
-              : 'border-[var(--border)] bg-transparent text-[var(--text2)]')
-          }
-          onClick={() => setApTab('group')}>Group Average Ranking</button>
+      <div className="pt-subtabs">
+        <button className={`pt-subtab${apTab==='individual'?' active':''}`} onClick={()=>setApTab('individual')}>Individual Ranking</button>
+        <button className={`pt-subtab${apTab==='group'?' active':''}`}      onClick={()=>setApTab('group')}>Group Average Ranking</button>
       </div>
 
-      {/* Individual */}
-      {apTab === 'individual' && (
+      {apTab==='individual' && (
         <div>
-          <div className="mb-3.5 flex flex-wrap gap-2.5">
-            <select
-              className="cursor-pointer appearance-none rounded-lg border-[1.5px] border-[var(--border)] bg-[var(--white)] px-3 py-2 pr-7 text-[13px] font-semibold text-[var(--text)] outline-none focus:border-[var(--purple)]"
-              style={selectArrowStyle}
-              value={apYear}
-              onChange={e=>setApYear(e.target.value)}
-            >
+          <div className="pt-filters">
+            <select className="pt-select" value={apYear} onChange={e=>setApYear(e.target.value)}>
               <option value="ALL">All Years</option>
               <option value="2nd">2nd Year</option>
               <option value="1st">1st Year</option>
             </select>
-            <select
-              className="cursor-pointer appearance-none rounded-lg border-[1.5px] border-[var(--border)] bg-[var(--white)] px-3 py-2 pr-7 text-[13px] font-semibold text-[var(--text)] outline-none focus:border-[var(--purple)]"
-              style={selectArrowStyle}
-              value={apDept}
-              onChange={e=>setApDept(e.target.value)}
-            >
+            <select className="pt-select" value={apDept} onChange={e=>setApDept(e.target.value)}>
               <option value="ALL">All Depts</option>
               {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
             </select>
-            <input
-              className="min-w-40 flex-1 rounded-lg border-[1.5px] border-[var(--border)] bg-[var(--white)] px-3.5 py-2 text-[13px] text-[var(--text)] outline-none placeholder:text-[var(--text3)] focus:border-[var(--purple)]"
-              placeholder="Search name or roll..."
-              value={apSearch}
-              onChange={e=>setApSearch(e.target.value)}
-            />
+            <input className="pt-search" placeholder="e.g. 7376242BT192" value={apSearch} onChange={e=>setApSearch(e.target.value)}/>
           </div>
-          <div className="mb-3.5 flex items-center gap-2.5 rounded-[10px] border border-[rgba(108,71,255,0.2)] border-l-[3px] border-l-[var(--purple)] bg-[linear-gradient(135deg,rgba(108,71,255,0.08),rgba(108,71,255,0.03))] px-4 py-3 text-[13px] font-medium text-[var(--motivator-text)]">
-            <span>🏆</span>
-            <span>
-              Showing <strong className="font-extrabold">{filtInd.length}</strong> students sorted by activity points
-            </span>
-          </div>
-          <div className="overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--white)]">
-            <div className="grid grid-cols-[56px_1fr_100px_90px] border-b border-[var(--border)] bg-[linear-gradient(90deg,var(--head-grad-from),var(--head-grad-to))] px-[18px] py-2.5 text-[10px] font-extrabold uppercase tracking-[1.5px] text-[var(--text3)]">
-              <div>Rank</div><div>Student</div><div>Department</div>
-              <div className="text-right">Pts</div>
-            </div>
-            {filtInd.length === 0
-              ? <div className="text-center py-10 px-5 text-[14px] text-[var(--text3)]">No students found.</div>
-              : filtInd.slice(0,50).map((s,i) => (
-                <div
-                  className="grid grid-cols-[56px_1fr_100px_90px] items-center border-b border-b-[var(--row-border)] px-[18px] py-3 transition-colors last:border-b-0 hover:bg-[var(--row-hover)]"
-                  key={s.roll}
-                  style={{
-                    animation: 'ptRowIn 0.3s ease both',
-                    animationDelay: `${Math.min(i,20)*0.03}s`,
-                  }}
-                >
-                  <div><RankCell rank={i} /></div>
-                  <div>
-                    <div className="text-[13px] font-bold text-[var(--text)]">{s.name}</div>
-                    <div className="mt-0.5 text-[11px] text-[var(--text3)]">{s.roll} · {s.year} Year</div>
-                  </div>
-                  <div className="text-[12px] font-semibold text-[var(--text2)]">{s.dept}</div>
-                  <div className="text-right text-[16px] font-black text-[var(--purple)]">{s.points.toLocaleString()}</div>
+          {indLoading && <Spinner text="Loading activity rankings..."/>}
+          {indError   && <div className="pt-empty" style={{color:'var(--red)'}}>{indError}</div>}
+          {!indLoading && !indError && (
+            <>
+              <div className="pt-act-count">Showing top {showInd.length} of {filtInd.length} students</div>
+              <div className="pt-act-table-card">
+                <div className="pt-act-table-head">
+                  <div>Rank</div><div>Student</div><div>Dept/Year</div>
+                  <div className="pt-act-table-head-pts">Act. Pts</div>
                 </div>
-              ))
-            }
-          </div>
+                {showInd.length===0
+                  ? <div className="pt-empty">No students found.</div>
+                  : showInd.map((s,i)=>{
+                    const y=Number(s.year_of_study)
+                    const yrShort=y===1?'1st Yr':y===2?'2nd Yr':y===3?'3rd Yr':''
+                    return (
+                      <div className="pt-act-table-row" key={s.reg_num||i} style={{animationDelay:`${Math.min(i,20)*0.03}s`}}>
+                        <div className="pt-act-rank"><RankCell rank={i}/></div>
+                        <div>
+                          <div className="pt-act-name">{s.name}</div>
+                          <div className="pt-act-roll-wrap">
+                            <span className="pt-act-roll">{s.reg_num}</span>
+                            {yrShort && <span className="pt-act-year-badge">{yrShort}</span>}
+                          </div>
+                        </div>
+                        <div className="pt-act-dept-year">{s.course||'-'}</div>
+                        <div className="pt-act-pts">{Number(s.points_available||0).toLocaleString()}</div>
+                      </div>
+                    )
+                  })
+                }
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* Group */}
-      {apTab === 'group' && (
+      {apTab==='group' && (
         <div>
-          <div className="mb-3.5 flex flex-wrap gap-2.5">
-            <input
-              className="min-w-40 flex-1 rounded-lg border-[1.5px] border-[var(--border)] bg-[var(--white)] px-3.5 py-2 text-[13px] text-[var(--text)] outline-none placeholder:text-[var(--text3)] focus:border-[var(--purple)]"
-              placeholder="Search group ID..."
-              value={grpSearch}
-              onChange={e=>setGrpSearch(e.target.value)}
-            />
+          <div className="pt-filters">
+            <input className="pt-search" style={{flex:'none',width:180}} placeholder="e.g. A#100027" value={grpSearch} onChange={e=>setGrpSearch(e.target.value)}/>
           </div>
-          <div className="mb-3.5 flex items-center gap-2.5 rounded-[10px] border border-[rgba(108,71,255,0.2)] border-l-[3px] border-l-[var(--purple)] bg-[linear-gradient(135deg,rgba(108,71,255,0.08),rgba(108,71,255,0.03))] px-4 py-3 text-[13px] font-medium text-[var(--motivator-text)]">
-            <span>👥</span>
-            <span>
-              Showing <strong className="font-extrabold">{filtGrp.length}</strong> groups ranked by average points
-            </span>
-          </div>
-          {filtGrp.slice(0,50).map((g,i) => (
-            <div
-              className="mb-2 flex items-center gap-3.5 rounded-xl border border-[var(--border)] bg-[var(--white)] px-4 py-3.5 transition-transform transition-colors hover:translate-x-[3px] hover:border-[var(--purple)]"
-              key={g.id}
-              style={{
-                animation: 'ptRowIn 0.3s ease both',
-                animationDelay: `${Math.min(i,20)*0.03}s`,
-              }}
-            >
-              <div className="min-w-10 text-[18px] font-black text-[var(--text3)]"><RankCell rank={i} /></div>
-              <div style={{ flex:1 }}>
-                <div className="text-[14px] font-extrabold text-[var(--text)]">{g.id}</div>
-                <div className="mt-0.5 text-[11px] text-[var(--text3)]">{g.members.length} members</div>
-                <div className="mt-2 h-1 w-full overflow-hidden rounded-[2px] bg-[var(--grp-bar-bg)]">
-                  <div
-                    className="h-full rounded-[2px] bg-[linear-gradient(90deg,var(--purple),var(--purple-to))]"
-                    style={{ width:`${Math.min((g.avgPts/12000)*100,100)}%` }} />
+          {grpLoading && <Spinner text="Loading group rankings..."/>}
+          {grpError   && <div className="pt-empty" style={{color:'var(--red)'}}>{grpError}</div>}
+          {!grpLoading && !grpError && (
+            <>
+              <div className="pt-act-count">{filtGrp.length} groups ranked by average activity points</div>
+              {showGrp.map((g,i)=>(
+                <div className="pt-grp-card" key={g.group_id||i} style={{animationDelay:`${Math.min(i,20)*0.03}s`}}>
+                  <div className="pt-grp-rank"><RankCell rank={i}/></div>
+                  <div>
+                    <div className="pt-grp-id">{g.group_id}{g.group_name?` · ${g.group_name}`:''}</div>
+                    <div className="pt-grp-meta">
+                      {g.captain_name?`Captain: ${g.captain_name} · `:''}
+                      {Number(g.member_count||0)} members
+                    </div>
+                    {/* Details button — opens GroupDetailsModal */}
+                    <button className="details-btn" style={{marginTop:6}} onClick={()=>onOpenGroup?.(g)}>
+                      Details
+                    </button>
+                  </div>
+                  <div className="pt-grp-pts-wrap">
+                    <div className="pt-grp-pts">{Number(g.avg_points||0).toLocaleString()}</div>
+                    <div className="pt-grp-avg-label">avg pts</div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <div className="min-w-[72px] text-right text-[16px] font-black text-[var(--purple)]">{g.totalPts.toLocaleString()}</div>
-                <div className="text-[10px] text-[var(--text3)]">Avg {g.avgPts.toLocaleString()}</div>
-              </div>
-            </div>
-          ))}
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -392,676 +764,106 @@ function ActivityPoints({ students, groups }) {
 }
 
 // ── Main PointsDashboard ──────────────────────────────────────
-export default function PointsDashboard() {
-  const [tab,      setTab]      = useState('rp')
-  const [students, setStudents] = useState([])
-  const [groups,   setGroups]   = useState([])
+export default function PointsDashboard({ onBack, onOpenDetails }) {
+  const navigate = useNavigate()
+  const [tab,          setTab]          = useState('rp')
+  const [darkMode,     setDarkMode]     = useState(()=>localStorage.getItem('pt-dark')==='1')
+  const { user } = useAuthStore()
+  // Details modal state
+  const [detailsOpen,  setDetailsOpen]  = useState(false)
+  const [detailsRoll,  setDetailsRoll]  = useState('')
+  const [detailsName,  setDetailsName]  = useState('')
+  // Group details modal state
+  const [groupOpen,    setGroupOpen]    = useState(false)
+  const [selectedGroup,setSelectedGroup]= useState(null)
 
-  // Generate students + groups once on mount
-  useEffect(() => {
-    const sts = genStudents()
-    setStudents(sts)
-    setGroups(genGroups(sts))
-  }, [])
-
-  const ptVars = {
-    '--purple': '#6c47ff',
-    '--purple-dim': 'rgba(108, 71, 255, 0.1)',
-    '--purple-glow': 'rgba(108, 71, 255, 0.3)',
-    '--bg': '#f0f2f8',
-    '--white': '#fff',
-    '--border': '#e5e4eb',
-    '--text': '#1a1a2e',
-    '--text2': '#6b7280',
-    '--text3': '#9ca3af',
-    '--green': '#10b981',
-    '--red': '#ef4444',
-    '--head-grad-from': '#f8f7ff',
-    '--head-grad-to': '#f0eeff',
-    '--row-border': '#f3f4f6',
-    '--row-hover': '#f8f7ff',
-    '--grp-bar-bg': '#f0f2f8',
-    '--purple-to': '#9b7aff',
-    '--motivator-text': '#5b4fdb',
-    background: 'var(--bg)',
-    color: 'var(--text)',
+  const handleBack = () => {
+    if (typeof onBack==='function') return onBack()
+    if (window.history.length>1) return navigate(-1)
+    return navigate('/student-dashboard',{replace:true})
   }
 
-  return (
-    <div className="min-h-screen" style={ptVars}>
-      <Header />
-      <style>{`
-        @keyframes ptRowIn {
-          from { opacity: 0; transform: translateX(-8px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes ptSpin { to { transform: rotate(360deg); } }
-      `}</style>
+  const handleLogout = async () => {
+    try { await authService.logout() }
+    finally { navigate('/auth/login',{replace:true}) }
+  }
 
-      <div className="px-6 pt-4 pb-8">
-        {/* Tabs — extracted from switchPoints() in original */}
-        <div className="mb-4 flex gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--white)] p-[5px]">
-          <button
-            className={
-              `flex-1 cursor-pointer rounded-lg px-3.5 py-2.5 text-[13px] font-bold transition-all ` +
-              (tab === 'rp'
-                ? 'bg-[var(--purple)] text-white shadow-[0_2px_8px_var(--purple-glow)]'
-                : 'bg-transparent text-[var(--text2)]')
-            }
-            onClick={() => setTab('rp')}
-          >
-            Reward Points
+  const handleOpenDetails = (roll, name) => {
+    setDetailsRoll(roll)
+    setDetailsName(name)
+    setDetailsOpen(true)
+    // Also call external handler if provided
+    onOpenDetails?.(roll, name)
+  }
+
+  useEffect(() => {
+    const el = document.createElement('style')
+    el.id    = 'pd-styles'
+    el.innerHTML = CSS
+    if (!document.getElementById('pd-styles')) document.head.appendChild(el)
+    return () => { const s=document.getElementById('pd-styles'); if(s) s.remove() }
+  }, [])
+
+  useEffect(() => {
+    document.body.classList.toggle('dark-mode', darkMode)
+    localStorage.setItem('pt-dark', darkMode?'1':'0')
+  }, [darkMode])
+
+  return (
+    <div style={{minHeight:'100vh', background:'var(--bg)'}}>
+      {/* Header */}
+      <div className="pt-header">
+        <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+          <button type="button" className="pt-header-back" onClick={handleBack}>Back</button>
+          <div className="pt-header-icon">🏅</div>
+          <div>
+            <div className="pt-header-title">Points Dashboard</div>
+            <div className="pt-header-sub">Reward Points &amp; Activity Points Rankings</div>
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <UserIdentity user={user} />
+          <button className="pt-dark-toggle" onClick={()=>setDarkMode(d=>!d)}>
+            {darkMode?'Light':'Dark'}
           </button>
-          <button
-            className={
-              `flex-1 cursor-pointer rounded-lg px-3.5 py-2.5 text-[13px] font-bold transition-all ` +
-              (tab === 'ap'
-                ? 'bg-[var(--purple)] text-white shadow-[0_2px_8px_var(--purple-glow)]'
-                : 'bg-transparent text-[var(--text2)]')
-            }
-            onClick={() => setTab('ap')}
-          >
-            Activity Points
+          <button type="button" className="pt-icon-btn" onClick={handleLogout} title="Logout">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M15 12H3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 9l-3 3 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
         </div>
-
-        {tab === 'rp' && <RewardPoints />}
-        {tab === 'ap' && <ActivityPoints students={students} groups={groups} />}
       </div>
+
+      {/* Content */}
+      <div className="pt-content">
+        <div className="pt-tabs">
+          <button className={`pt-tab${tab==='rp'?' active':''}`} onClick={()=>setTab('rp')}>Reward Points</button>
+          <button className={`pt-tab${tab==='ap'?' active':''}`} onClick={()=>setTab('ap')}>Activity Points</button>
+        </div>
+        {tab==='rp' && <RewardPoints onOpenDetails={handleOpenDetails}/>}
+        {tab==='ap' && <ActivityPoints onOpenGroup={(g)=>{setSelectedGroup(g);setGroupOpen(true)}}/>}
+      </div>
+
+      {/* ── Reward Points Details Modal ── */}
+      {detailsOpen && (
+        <DetailsModal
+          isOpen={detailsOpen}
+          onClose={()=>setDetailsOpen(false)}
+          roll={detailsRoll}
+          name={detailsName}
+        />
+      )}
+
+      {/* ── Group Details Modal ── */}
+      {groupOpen && (
+        <GroupDetailsModal
+          isOpen={groupOpen}
+          onClose={()=>setGroupOpen(false)}
+          group={selectedGroup}
+        />
+      )}
     </div>
   )
 }
-
-// /* ============================================================
-//    Global Styles — extracted from index_working.html
-//    100% identical to original
-//    ============================================================ */
-
-// @import './variables.css';
-
-// *, *::before, *::after {
-//   box-sizing: border-box;
-//   margin: 0;
-//   padding: 0;
-// }
-
-// html, body {
-//   min-height: 100vh;
-//   font-family: var(--font-body);
-//   background: var(--bg);
-//   color: var(--text);
-//   -webkit-font-smoothing: antialiased;
-// }
-
-// /* ── HEADER ──────────────────────────────────────────────── */
-// .pt-header {
-//   background: var(--white);
-//   border-bottom: 1px solid var(--border);
-//   padding: 16px 24px;
-//   display: flex;
-//   align-items: center;
-//   justify-content: space-between;
-//   gap: 12px;
-//   position: sticky;
-//   top: 0;
-//   z-index: 100;
-//   box-shadow: 0 1px 8px rgba(0,0,0,0.05);
-// }
-// .pt-header-icon {
-//   width: 36px; height: 36px;
-//   border-radius: 10px;
-//   background: var(--purple-dim);
-//   display: flex; align-items: center; justify-content: center;
-//   font-size: 18px;
-// }
-// .pt-header-title {
-//   font-size: 18px; font-weight: 800;
-//   color: var(--text);
-//   font-family: var(--font-head);
-// }
-// .pt-header-sub {
-//   font-size: 12px;
-//   color: var(--text3);
-//   margin-top: 1px;
-// }
-
-// /* ── DARK TOGGLE ─────────────────────────────────────────── */
-// .pt-dark-toggle {
-//   background: none;
-//   border: 1.5px solid var(--border);
-//   border-radius: 20px;
-//   padding: 5px 11px;
-//   cursor: pointer;
-//   font-size: 13px;
-//   color: var(--text2);
-//   display: flex; align-items: center; gap: 5px;
-//   transition: all 0.2s;
-//   font-family: var(--font-body);
-//   font-weight: 600;
-//   white-space: nowrap;
-// }
-// .pt-dark-toggle:hover {
-//   border-color: var(--purple);
-//   color: var(--purple);
-// }
-// body.dark-mode .pt-dark-toggle {
-//   background: #1f1f3a;
-//   border-color: #2d2d4e;
-//   color: #a89ec9;
-// }
-// body.dark-mode .pt-dark-toggle:hover {
-//   border-color: var(--purple);
-//   color: var(--purple);
-// }
-
-// /* ── BOXES (front page two boxes) ───────────────────────── */
-// .pt-boxes-col {
-//   display: flex; flex-direction: column;
-//   gap: 12px;
-//   padding: 20px 24px 0;
-// }
-// .pt-box {
-//   background: var(--white);
-//   border: 1.5px solid var(--border);
-//   border-radius: 14px;
-//   padding: 18px 20px;
-//   cursor: pointer;
-//   transition: all 0.22s;
-//   display: flex; align-items: center; gap: 14px;
-//   position: relative;
-// }
-// .pt-box:hover {
-//   border-color: var(--purple);
-//   box-shadow: 0 4px 16px rgba(108,71,255,0.1);
-// }
-// .pt-box.active {
-//   border-color: var(--purple);
-//   background: rgba(108,71,255,0.04);
-// }
-// .pt-box-icon-wrap {
-//   width: 44px; height: 44px;
-//   border-radius: 12px;
-//   background: var(--purple-dim);
-//   display: flex; align-items: center; justify-content: center;
-//   flex-shrink: 0;
-// }
-// .pt-box-icon-wrap svg {
-//   width: 22px; height: 22px;
-//   color: var(--purple);
-// }
-// .pt-box-info { flex: 1; }
-// .pt-box-label {
-//   font-size: 15px; font-weight: 700;
-//   color: var(--text);
-// }
-// .pt-box-desc {
-//   font-size: 12px;
-//   color: var(--text2);
-//   margin-top: 2px;
-// }
-// .pt-box-arrow {
-//   color: var(--text3);
-//   font-size: 16px;
-//   transition: color 0.2s;
-// }
-// .pt-box.active .pt-box-arrow { color: var(--purple); }
-
-// /* ── CONTENT ─────────────────────────────────────────────── */
-// .pt-content { padding: 16px 24px 32px; }
-
-// /* ── TABS ────────────────────────────────────────────────── */
-// .pt-tabs {
-//   display: flex; gap: 6px;
-//   margin-bottom: 16px;
-//   background: var(--white);
-//   border-radius: 12px;
-//   padding: 5px;
-//   border: 1px solid var(--border);
-// }
-// .pt-tab {
-//   flex: 1;
-//   padding: 10px 14px;
-//   border-radius: 8px;
-//   border: none;
-//   background: transparent;
-//   font-size: 13px; font-weight: 700;
-//   color: var(--text2);
-//   cursor: pointer;
-//   transition: all 0.2s;
-//   font-family: var(--font-body);
-// }
-// .pt-tab.active {
-//   background: var(--purple);
-//   color: #fff;
-//   box-shadow: 0 2px 8px var(--purple-glow);
-// }
-
-// /* ── SUBTABS ─────────────────────────────────────────────── */
-// .pt-subtabs { display: flex; gap: 8px; margin-bottom: 14px; }
-// .pt-subtab {
-//   padding: 7px 16px;
-//   border-radius: 20px;
-//   border: 1px solid var(--border);
-//   background: transparent;
-//   font-size: 12px; font-weight: 700;
-//   color: var(--text2);
-//   cursor: pointer;
-//   transition: all 0.2s;
-//   font-family: var(--font-body);
-// }
-// .pt-subtab.active {
-//   background: var(--purple-dim);
-//   border-color: var(--purple-glow);
-//   color: var(--purple);
-// }
-
-// /* ── FILTERS ─────────────────────────────────────────────── */
-// .pt-filters { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-// .pt-select {
-//   padding: 8px 28px 8px 12px;
-//   border: 1.5px solid var(--border);
-//   border-radius: 8px;
-//   background: var(--white);
-//   font-size: 13px; font-weight: 600;
-//   color: var(--text);
-//   outline: none; cursor: pointer;
-//   appearance: none;
-//   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-//   background-repeat: no-repeat;
-//   background-position: right 8px center;
-//   font-family: var(--font-body);
-// }
-// .pt-select:focus { border-color: var(--purple); }
-// .pt-search {
-//   flex: 1; min-width: 160px;
-//   padding: 8px 14px;
-//   border: 1.5px solid var(--border);
-//   border-radius: 8px;
-//   background: var(--white);
-//   font-size: 13px; color: var(--text);
-//   outline: none;
-//   font-family: var(--font-body);
-// }
-// .pt-search:focus { border-color: var(--purple); }
-// .pt-search::placeholder { color: var(--text3); }
-
-// /* ── MOTIVATOR BANNER ────────────────────────────────────── */
-// .pt-motivator {
-//   background: linear-gradient(135deg, rgba(108,71,255,0.08), rgba(108,71,255,0.03));
-//   border: 1px solid rgba(108,71,255,0.2);
-//   border-left: 3px solid var(--purple);
-//   border-radius: 10px;
-//   padding: 12px 16px;
-//   margin-bottom: 14px;
-//   font-size: 13px; color: #5b4fdb;
-//   font-weight: 500;
-//   display: flex; align-items: center; gap: 10px;
-// }
-// .pt-motivator strong { font-weight: 800; }
-// .pt-count { font-size: 11px; color: var(--text3); text-align: right; margin-bottom: 8px; }
-
-// /* ── LEADERBOARD TABLE ───────────────────────────────────── */
-// .pt-table-card {
-//   background: var(--white);
-//   border-radius: 14px;
-//   border: 1px solid var(--border);
-//   overflow: hidden;
-// }
-// .pt-table-head {
-//   display: grid;
-//   grid-template-columns: 56px 1fr 100px 90px;
-//   padding: 10px 18px;
-//   background: linear-gradient(90deg, #f8f7ff, #f0eeff);
-//   font-size: 10px; font-weight: 800;
-//   color: var(--text3);
-//   letter-spacing: 1.5px; text-transform: uppercase;
-//   border-bottom: 1px solid var(--border);
-// }
-// .pt-table-head-with-btn {
-//   display: grid;
-//   grid-template-columns: 56px 1fr 90px 100px 90px;
-//   padding: 10px 18px;
-//   background: linear-gradient(90deg, #f8f7ff, #f0eeff);
-//   font-size: 10px; font-weight: 800;
-//   color: var(--text3);
-//   letter-spacing: 1.5px; text-transform: uppercase;
-//   border-bottom: 1px solid var(--border);
-// }
-// .pt-table-head-pts { text-align: right; }
-// .pt-table-row {
-//   display: grid;
-//   grid-template-columns: 56px 1fr 100px 90px;
-//   align-items: center;
-//   padding: 12px 18px;
-//   border-bottom: 1px solid #f3f4f6;
-//   transition: background 0.15s;
-//   animation: rowIn 0.3s ease both;
-// }
-// .pt-table-row-with-btn {
-//   display: grid;
-//   grid-template-columns: 56px 1fr 90px 100px 90px;
-//   align-items: center;
-//   padding: 12px 18px;
-//   border-bottom: 1px solid #f3f4f6;
-//   transition: background 0.15s;
-//   animation: rowIn 0.3s ease both;
-// }
-// .pt-table-row:last-child,
-// .pt-table-row-with-btn:last-child { border-bottom: none; }
-// .pt-table-row:hover,
-// .pt-table-row-with-btn:hover { background: #f8f7ff; }
-// .pt-rank { font-size: 15px; font-weight: 900; color: var(--text3); }
-// .pt-name { font-size: 13px; font-weight: 700; color: var(--text); }
-// .pt-roll { font-size: 11px; color: var(--text3); margin-top: 2px; }
-// .pt-dept { font-size: 12px; color: var(--text2); font-weight: 600; }
-// .pt-pts { font-size: 16px; font-weight: 900; color: var(--purple); text-align: right; }
-
-// /* ── DETAILS BUTTON ──────────────────────────────────────── */
-// .details-btn {
-//   display: inline-flex; align-items: center; gap: 3px;
-//   padding: 3px 9px; border-radius: 20px;
-//   border: 1px solid rgba(108,71,255,0.25);
-//   background: rgba(108,71,255,0.07);
-//   color: var(--purple);
-//   font-family: var(--font-body);
-//   font-size: 10px; font-weight: 700;
-//   cursor: pointer; transition: all 0.2s;
-//   white-space: nowrap; letter-spacing: 0.5px;
-// }
-// .details-btn:hover {
-//   background: rgba(108,71,255,0.16);
-//   border-color: var(--purple);
-// }
-
-// @keyframes rowIn {
-//   from { opacity: 0; transform: translateX(-8px); }
-//   to   { opacity: 1; transform: translateX(0); }
-// }
-
-// /* ── GROUP CARDS ─────────────────────────────────────────── */
-// .pt-grp-card {
-//   display: flex; align-items: center; gap: 14px;
-//   padding: 14px 16px;
-//   background: var(--white);
-//   border: 1px solid var(--border);
-//   border-radius: 12px;
-//   margin-bottom: 8px;
-//   transition: all 0.2s;
-//   animation: rowIn 0.3s ease both;
-// }
-// .pt-grp-card:hover { border-color: var(--purple); transform: translateX(3px); }
-// .pt-grp-rank { font-size: 18px; font-weight: 900; color: var(--text3); min-width: 40px; }
-// .pt-grp-id   { font-size: 14px; font-weight: 800; color: var(--text); }
-// .pt-grp-cap  { font-size: 11px; color: var(--text3); margin-top: 2px; }
-// .pt-grp-bar  { flex: 1; height: 4px; background: #f0f2f8; border-radius: 2px; overflow: hidden; }
-// .pt-grp-bar-fill {
-//   height: 100%;
-//   background: linear-gradient(90deg, var(--purple), #9b7aff);
-//   border-radius: 2px;
-// }
-// .pt-grp-pts { font-size: 16px; font-weight: 900; color: var(--purple); text-align: right; min-width: 72px; }
-// .pt-grp-avg { font-size: 10px; color: var(--text3); }
-
-// /* ── COURSE CARDS ────────────────────────────────────────── */
-// .pt-course-grid {
-//   display: grid;
-//   grid-template-columns: repeat(4, 1fr);
-//   gap: 14px;
-// }
-// .pt-ccard {
-//   background: var(--white);
-//   border: 1px solid var(--border);
-//   border-radius: 16px;
-//   overflow: hidden;
-//   cursor: pointer;
-//   transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s, border-color 0.2s;
-// }
-// .pt-ccard:hover {
-//   transform: translateY(-5px);
-//   box-shadow: 0 16px 40px rgba(108,71,255,0.12);
-//   border-color: rgba(108,71,255,0.3);
-// }
-// .pt-ccard-img {
-//   position: relative; height: 160px;
-//   background: linear-gradient(135deg, #e0dbff, #c5bfef);
-//   overflow: hidden;
-// }
-// .pt-ccard-img img {
-//   width: 100%; height: 100%;
-//   object-fit: cover;
-//   transition: transform 0.4s ease;
-// }
-// .pt-ccard:hover .pt-ccard-img img { transform: scale(1.04); }
-// .pt-ccard-overlay {
-//   position: absolute; inset: 0;
-//   background: linear-gradient(to top, rgba(26,26,46,0.4), transparent);
-// }
-// .pt-ccard-badge {
-//   position: absolute; top: 10px; left: 10px;
-//   padding: 4px 10px; border-radius: 20px;
-//   font-size: 10px; font-weight: 700;
-//   backdrop-filter: blur(8px);
-// }
-// .pt-ccard-slots-badge {
-//   position: absolute; top: 10px; right: 10px;
-//   padding: 4px 10px; border-radius: 20px;
-//   background: rgba(16,185,129,0.18);
-//   border: 1px solid rgba(16,185,129,0.4);
-//   color: #10b981;
-//   font-size: 10px; font-weight: 700;
-// }
-// .pt-ccard-body { padding: 12px 14px 14px; }
-// .pt-ccard-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.4; margin-bottom: 8px; }
-// .pt-ccard-footer {
-//   display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
-// }
-// .pt-ccard-meta  { font-size: 11px; color: var(--text3); font-weight: 600; }
-// .pt-ccard-status { font-size: 12px; font-weight: 700; color: var(--green); }
-// .pt-ccard-status.warn { color: var(--red); }
-// .pt-ccard-cta {
-//   display: flex; align-items: center; justify-content: space-between;
-//   background: var(--purple-dim);
-//   border: 1px solid rgba(108,71,255,0.2);
-//   border-radius: 8px;
-//   padding: 8px 12px;
-//   color: var(--purple);
-//   font-size: 12px; font-weight: 700;
-//   transition: all 0.2s;
-// }
-// .pt-ccard:hover .pt-ccard-cta {
-//   background: rgba(108,71,255,0.15);
-//   border-color: rgba(108,71,255,0.4);
-// }
-
-// /* ── DETAIL LAYOUT ───────────────────────────────────────── */
-// .pt-detail-layout {
-//   display: grid;
-//   grid-template-columns: 1fr 300px;
-//   gap: 18px;
-// }
-// .pt-detail-main {
-//   background: var(--white);
-//   border: 1px solid var(--border);
-//   border-radius: 16px;
-//   padding: 24px;
-//   display: flex; flex-direction: column; gap: 18px;
-// }
-// .pt-section-back {
-//   display: flex; align-items: center; gap: 8px;
-//   background: var(--white);
-//   border: 1.5px solid var(--border);
-//   color: var(--text2);
-//   padding: 9px 16px; border-radius: 10px;
-//   font-size: 13px; font-weight: 700;
-//   cursor: pointer; transition: all 0.2s;
-//   width: fit-content; margin-bottom: 16px;
-// }
-// .pt-section-back:hover {
-//   background: var(--purple-dim);
-//   border-color: rgba(108,71,255,0.3);
-//   color: var(--purple);
-// }
-// .pt-detail-back {
-//   display: flex; align-items: center; gap: 8px;
-//   background: rgba(0,0,0,0.04);
-//   border: 1px solid var(--border);
-//   color: var(--text2);
-//   padding: 8px 16px; border-radius: 8px;
-//   font-size: 13px; font-weight: 700;
-//   cursor: pointer; transition: all 0.2s;
-//   width: fit-content; margin-bottom: 4px;
-// }
-// .pt-detail-back:hover {
-//   background: var(--purple-dim);
-//   border-color: rgba(108,71,255,0.25);
-//   color: var(--purple);
-// }
-// .pt-detail-section-label {
-//   font-size: 17px; font-weight: 800; color: var(--text);
-//   margin-bottom: 4px; font-family: var(--font-head);
-// }
-// .pt-detail-sublabel { font-size: 12px; color: var(--text3); }
-// .pt-topics-list { display: flex; flex-direction: column; gap: 8px; }
-// .pt-topic-item {
-//   display: flex; align-items: flex-start; gap: 12px;
-//   padding: 10px 14px;
-//   background: #f8f7ff;
-//   border: 1px solid rgba(108,71,255,0.08);
-//   border-radius: 8px;
-// }
-// .pt-topic-num  { font-size: 12px; font-weight: 800; color: var(--text3); min-width: 22px; }
-// .pt-topic-text { font-size: 13px; color: var(--text); line-height: 1.5; }
-// .pt-detail-actions { display: flex; gap: 12px; margin-top: 4px; }
-// .pt-open-link-btn {
-//   flex: 1; padding: 13px; border-radius: 10px;
-//   border: 1.5px solid rgba(108,71,255,0.3);
-//   background: var(--purple-dim);
-//   color: var(--purple);
-//   font-family: var(--font-body); font-size: 13px; font-weight: 700;
-//   cursor: pointer; transition: all 0.2s;
-// }
-// .pt-complete-btn {
-//   flex: 1; padding: 13px; border-radius: 10px;
-//   border: 1.5px solid rgba(16,185,129,0.3);
-//   background: rgba(16,185,129,0.1);
-//   color: var(--green);
-//   font-family: var(--font-body); font-size: 13px; font-weight: 700;
-//   cursor: pointer; transition: all 0.2s;
-// }
-
-// /* ── SIDE CARD ───────────────────────────────────────────── */
-// .pt-detail-side { display: flex; flex-direction: column; gap: 14px; }
-// .pt-side-card {
-//   background: var(--white);
-//   border: 1px solid var(--border);
-//   border-radius: 16px;
-//   padding: 20px;
-// }
-// .pt-side-card-title {
-//   font-size: 11px; font-weight: 700; color: var(--text3);
-//   letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px;
-// }
-// .pt-side-course-name {
-//   font-size: 14px; font-weight: 800; color: var(--text);
-//   margin-bottom: 16px; line-height: 1.4;
-// }
-// .pt-book-slot-btn {
-//   width: 100%; padding: 13px;
-//   background: var(--purple-dim);
-//   border: 1.5px solid rgba(108,71,255,0.25);
-//   border-radius: 8px;
-//   color: var(--purple);
-//   font-family: var(--font-head); font-size: 14px; font-weight: 800;
-//   cursor: pointer; transition: all 0.2s;
-// }
-// .pt-book-slot-btn:hover {
-//   background: rgba(108,71,255,0.18);
-//   border-color: var(--purple);
-// }
-// .pt-materials-card {
-//   background: var(--white);
-//   border: 1px solid var(--border);
-//   border-radius: 16px;
-//   padding: 20px;
-// }
-// .pt-materials-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
-// .pt-material-item { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-// .pt-material-header {
-//   display: flex; align-items: center; justify-content: space-between;
-//   padding: 11px 14px; background: #f8f7ff;
-//   font-size: 13px; font-weight: 700; color: var(--text);
-// }
-// .pt-material-count { font-size: 11px; color: var(--text3); }
-
-// /* ── EMPTY / SPINNER ─────────────────────────────────────── */
-// .pt-empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 14px; }
-// .pt-spinner-wrap { text-align: center; padding: 40px 20px; }
-// .pt-spinner {
-//   width: 32px; height: 32px;
-//   border: 3px solid var(--border);
-//   border-top-color: var(--purple);
-//   border-radius: 50%;
-//   animation: spin 0.7s linear infinite;
-//   margin: 0 auto 12px;
-// }
-// .pt-spinner-text { font-size: 13px; color: var(--text2); font-weight: 600; }
-// @keyframes spin { to { transform: rotate(360deg); } }
-
-// /* ── DARK MODE OVERRIDES ─────────────────────────────────── */
-// body.dark-mode .pt-header       { background: #151525; border-bottom: 1px solid #2d2d4e; }
-// body.dark-mode .pt-box          { background: #1a1a2e; border-color: #2d2d4e; }
-// body.dark-mode .pt-table-card   { background: #1a1a2e; }
-// body.dark-mode .pt-table-head   { background: linear-gradient(90deg, #1f1f3a, #1a1a2e); }
-// body.dark-mode .pt-table-row:hover,
-// body.dark-mode .pt-table-row-with-btn:hover { background: #1f1f3a; }
-// body.dark-mode .pt-table-row,
-// body.dark-mode .pt-table-row-with-btn { border-bottom-color: #2d2d4e; }
-// body.dark-mode .pt-tabs         { background: #1a1a2e; border-color: #2d2d4e; }
-// body.dark-mode .pt-select,
-// body.dark-mode .pt-search       { background: #1a1a2e; border-color: #2d2d4e; color: var(--text); }
-// body.dark-mode .pt-ccard        { background: #1a1a2e; border-color: #2d2d4e; }
-// body.dark-mode .pt-ccard-name   { color: var(--text); }
-// body.dark-mode .pt-grp-card     { background: #1a1a2e; border-color: #2d2d4e; }
-// body.dark-mode .pt-detail-main  { background: #1a1a2e; border-color: #2d2d4e; }
-// body.dark-mode .pt-side-card    { background: #1a1a2e; border-color: #2d2d4e; }
-// body.dark-mode .pt-materials-card { background: #1a1a2e; border-color: #2d2d4e; }
-// body.dark-mode .pt-topic-item   { background: #1f1f3a; border-color: #2d2d4e; }
-// body.dark-mode .pt-material-header { background: #1f1f3a; }
-// body.dark-mode .pt-section-back { background: #1a1a2e; border-color: #2d2d4e; }
-// body.dark-mode .pt-subtab       { border-color: #2d2d4e; }
-// body.dark-mode tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
-
-
-// /* ============================================================
-//    CSS Variables — extracted from index_working.html :root
-//    100% identical to original
-//    ============================================================ */
-
-// :root {
-//   --purple:      #6c47ff;
-//   --purple-dim:  rgba(108, 71, 255, 0.1);
-//   --purple-glow: rgba(108, 71, 255, 0.3);
-//   --bg:          #f0f2f8;
-//   --white:       #fff;
-//   --border:      #e5e4eb;
-//   --text:        #1a1a2e;
-//   --text2:       #6b7280;
-//   --text3:       #9ca3af;
-//   --green:       #10b981;
-//   --red:         #ef4444;
-//   --gold:        #f59e0b;
-//   --silver:      #9ca3af;
-//   --bronze:      #b87a3c;
-//   --font-head:   'Outfit', sans-serif;
-//   --font-body:   'Plus Jakarta Sans', sans-serif;
-// }
-
-// /* Dark mode variable overrides — extracted from body.dark-mode in original */
-// body.dark-mode {
-//   --bg:     #0f0f1a;
-//   --white:  #1a1a2e;
-//   --border: #2d2d4e;
-//   --text:   #e8e6f0;
-//   --text2:  #a89ec9;
-//   --text3:  #6b6b8a;
-// }

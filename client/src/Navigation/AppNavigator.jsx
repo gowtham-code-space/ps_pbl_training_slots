@@ -8,10 +8,12 @@ import { silentRefresh } from '../services/core/session.js';
 import Login from "../pages/Auth/Login.jsx"
 
 //student
+import StudentDashboard from '../pages/Student/StudentDashboard.jsx';
 import PointsDashboard from '../pages/Student/PointsDashboard.jsx';
 import MCQAssessment from '../pages/Student/McqAssessment.jsx';
 import Compiler from "../pages/Student/Compiler.jsx";
 import StudentFeedback from '../pages/Student/StudentFeedback .jsx';
+import TrainingSlots from '../pages/Student/TrainingSlots.jsx';
 
 //admin
 import AdminDashboard from "../pages/Admin/AdminDashboard.jsx";
@@ -57,7 +59,7 @@ function HomeRedirect() {
         return <Navigate to="/admin-dashboard" replace />;
     }
     if (roleId === 1) {
-        return <Navigate to="/points-dashboard" replace />;
+        return <Navigate to="/student-dashboard" replace />;
     }
 
     if (roleId === 2) {
@@ -90,7 +92,10 @@ function AppNavigator() {
                 {/* Routes are registered by role_id after auth */}
                 {Number(user?.role_id) === 1 && (
                     <>
-                        <Route path="/points-dashboard" element={<RequireAuth><PointsDashboard/></RequireAuth>} />
+                    
+                        <Route path="/student-dashboard" element={<RequireAuth><StudentDashboard/></RequireAuth>} />
+                        <Route path="/points-page" element={<RequireAuth><PointsDashboard/></RequireAuth>} />
+                        <Route path="/training-slots" element={<RequireAuth><TrainingSlots/></RequireAuth>} />
                         <Route path="/assessment/mcq" element={<RequireAuth><MCQAssessment/></RequireAuth>} />
                         <Route path="/assessment/compiler" element={<RequireAuth><Compiler/></RequireAuth>} />
                         <Route path="/assessment/Student-feedback" element={<RequireAuth><StudentFeedback/></RequireAuth>} />

@@ -8,7 +8,10 @@ let refreshPromise = null;
 export const decodeToken = (token) => {
     try {
         const payload = token.split('.')[1];
-        const decodedPayload = atob(payload);
+        // JWT uses base64url encoding (not plain base64)
+        const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+        const decodedPayload = atob(padded);
         return JSON.parse(decodedPayload);
     } catch (error) {
         console.error('Error decoding token:', error);
@@ -34,6 +37,22 @@ export const getUser = () => {
 
 export const clearSession = () => {
     useAuthStore.getState().logout();
+};
+
+// Logout: clears refresh cookie on server + clears local auth state
+export const logoutSession = async () => {
+    try {
+        await axios.post(
+            `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/auth/logout`,
+            {},
+            { withCredentials: true }
+        );
+    } catch (error) {
+        // Even if server logout fails, clear local session to force re-auth
+        console.error('Logout failed:', error);
+    } finally {
+        clearSession();
+    }
 };
 
 // Silent refresh: called on app load to restore session from HttpOnly refresh token
