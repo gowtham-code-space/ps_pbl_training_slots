@@ -74,7 +74,7 @@ export default function Students() {
     <div className="min-h-screen flex flex-col" style={{ ...adminThemeVars, background: "var(--bg)" }}>
       <Header showBack backPage="dashboard" />
 
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         <div
           className="text-[22px] font-extrabold mb-1"
           style={{ color: "var(--text)", fontFamily: "var(--font-head)" }}
@@ -115,9 +115,8 @@ export default function Students() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name / roll…"
-            className="rounded-lg border-[1.5px] px-3 py-2 text-xs font-semibold outline-none transition-colors duration-200"
+            className="w-full sm:w-[180px] rounded-lg border-[1.5px] px-3 py-2 text-xs font-semibold outline-none transition-colors duration-200"
             style={{
-              width:       "180px",
               borderColor: "var(--border)",
               background:  "var(--white)",
               color:       "var(--text)",

@@ -26,7 +26,7 @@ function SlotTable({ slots, faculty, onDelete, onAdd, type }) {
   return (
     <div className="min-h-screen flex flex-col" style={{ ...adminThemeVars, background: "var(--bg)" }}>
       <Header showBack backPage="dashboard" />
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         <div className="text-[22px] font-extrabold mb-1" style={{ color: "var(--text)", fontFamily: "var(--font-head)" }}>
           {type} Slot Management
         </div>
@@ -39,7 +39,7 @@ function SlotTable({ slots, faculty, onDelete, onAdd, type }) {
         <div className="flex justify-end mb-3.5">
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 rounded-lg border-[1.5px] text-[13px] font-bold transition-all duration-150"
+            className="w-full sm:w-auto px-4 py-2 rounded-lg border-[1.5px] text-[13px] font-bold transition-all duration-150"
             style={{ borderColor: "var(--green)", color: "var(--green)", background: "transparent", fontFamily: "var(--font-body)" }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--green)"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--green)"; }}

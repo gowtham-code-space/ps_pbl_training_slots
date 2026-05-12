@@ -97,7 +97,7 @@ export default function VenueAllocation() {
     <div className="min-h-screen flex flex-col" style={{ ...adminThemeVars, background: "var(--bg)" }}>
       <Header showBack backPage="dashboard" />
 
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         <div className="text-[22px] font-extrabold mb-1" style={{ color: "var(--text)", fontFamily: "var(--font-head)" }}>
           Venue Allocation
         </div>
@@ -107,7 +107,7 @@ export default function VenueAllocation() {
 
         {/* Top row: mini stats + map button */}
         <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
-          <div className="grid grid-cols-3 gap-2.5 flex-1">
+          <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-2.5 flex-1">
             {[
               { val: 12,            label: "Total Venues", accent: "purple" },
               { val: occupiedCount, label: "Occupied",     accent: "red"    },
@@ -131,7 +131,7 @@ export default function VenueAllocation() {
           {/* Venue Map button */}
           <button
             onClick={() => setShowMap(true)}
-            className="flex items-center gap-2 px-4 py-3 rounded-xl border-[1.5px] text-[13px] font-extrabold flex-shrink-0 transition-all duration-200"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-[1.5px] text-[13px] font-extrabold flex-shrink-0 transition-all duration-200"
             style={{
               borderColor: "var(--purple-glow)",
               background:  "var(--purple-dim)",

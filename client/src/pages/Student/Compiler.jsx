@@ -3,7 +3,7 @@
 // Course: Programming Python (PS Course ID: 3)
 // Data taken directly from COMPILER_QUESTIONS[3] and runCode() logic
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 // ── Extracted directly from COMPILER_QUESTIONS[3] in index_working.html ──
 const COURSE = {
@@ -27,16 +27,38 @@ const IcoPlay = () => <svg width="13" height="13" fill="currentColor" viewBox="0
 const P = "#6c47ff";
 const T = { bg:"#0d0d14", panel:"#13131f", sidebar:"#0f0f1a", border:"#1e1e2e", green:"#3fb950", red:"#f85149", yellow:"#e3b341", teal:"#4ec9b0", text:"#e2e8f0", text2:"#8b9ec7", text3:"#4a5580" };
 
+function useIsNarrow(maxWidthPx = 640) {
+  const [isNarrow, setIsNarrow] = useState(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia(`(max-width: ${maxWidthPx}px)`);
+    const onChange = (e) => setIsNarrow(e.matches);
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else mq.addListener(onChange);
+    setIsNarrow(mq.matches);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", onChange);
+      else mq.removeListener(onChange);
+    };
+  }, [maxWidthPx]);
+
+  return isNarrow;
+}
+
 // ── Sidebar ───────────────────────────────────────────────────
-function Sidebar({ active, setActive }) {
+function Sidebar({ active, setActive, isMobile }) {
   const items = [
     { id: "editor",   icon: <IcoCode />, label: "Editor"   },
     { id: "terminal", icon: <IcoTerm />, label: "Terminal" },
     { id: "files",    icon: <IcoFile />, label: "Files"    },
   ];
   return (
-    <div style={{ width: 52, background: T.sidebar, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12, gap: 4, flexShrink: 0 }}>
-      <div style={{ width: 30, height: 30, borderRadius: 8, background: P, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, fontWeight: 900, color: "#fff", fontSize: 15 }}>B</div>
+    <div style={{ width: isMobile ? "100%" : 52, height: isMobile ? 52 : "auto", background: T.sidebar, borderRight: isMobile ? "none" : `1px solid ${T.border}`, borderBottom: isMobile ? `1px solid ${T.border}` : "none", display: "flex", flexDirection: isMobile ? "row" : "column", alignItems: "center", padding: isMobile ? "6px 10px" : undefined, paddingTop: isMobile ? undefined : 12, gap: isMobile ? 8 : 4, flexShrink: 0, overflowX: isMobile ? "auto" : "hidden" }}>
+      <div style={{ width: 30, height: 30, borderRadius: 8, background: P, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: isMobile ? 0 : 16, marginRight: isMobile ? 6 : 0, fontWeight: 900, color: "#fff", fontSize: 15, flexShrink: 0 }}>B</div>
       {items.map(it => (
         <button key={it.id} title={it.label} onClick={() => setActive(it.id)}
           style={{ width: 40, height: 40, borderRadius: 8, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: active === it.id ? "rgba(108,71,255,0.18)" : "transparent", color: active === it.id ? P : T.text3, transition: "all .18s" }}>
@@ -49,6 +71,7 @@ function Sidebar({ active, setActive }) {
 
 // ── Main Component ─────────────────────────────────────────────
 export default function Compiler() {
+  const isMobile = useIsNarrow(640);
   const [sideActive, setSideActive] = useState("editor");
   const [code,       setCode]       = useState(COURSE.starter);
   const [stdin,      setStdin]      = useState("7");
@@ -208,11 +231,11 @@ export default function Compiler() {
   const outColor = output.type === "error" ? T.red : output.type === "success" ? T.green : T.text2;
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: T.bg, fontFamily: "'Segoe UI',system-ui,sans-serif", overflow: "hidden", color: T.text }}>
-      <Sidebar active={sideActive} setActive={setSideActive} />
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "100dvh" : "100vh", background: T.bg, fontFamily: "'Segoe UI',system-ui,sans-serif", overflow: "hidden", color: T.text }}>
+      <Sidebar active={sideActive} setActive={setSideActive} isMobile={isMobile} />
 
       {/* Problem sidebar */}
-      <div style={{ width: 260, background: T.panel, borderRight: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}>
+      <div style={{ width: isMobile ? "100%" : 260, maxHeight: isMobile ? 260 : undefined, background: T.panel, borderRight: isMobile ? "none" : `1px solid ${T.border}`, borderBottom: isMobile ? `1px solid ${T.border}` : "none", display: "flex", flexDirection: "column", flexShrink: 0, overflow: "hidden" }}>
         <div style={{ padding: "12px 14px 8px", borderBottom: `1px solid ${T.border}` }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: P, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 3 }}>Problem</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{COURSE.title}</div>
@@ -243,7 +266,7 @@ export default function Compiler() {
       {/* Editor area */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Title bar */}
-        <div style={{ height: 36, background: "#1a1a2e", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", paddingLeft: 14, gap: 12, flexShrink: 0 }}>
+        <div style={{ height: isMobile ? "auto" : 36, background: "#1a1a2e", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", flexWrap: isMobile ? "wrap" : "nowrap", paddingLeft: 14, paddingRight: isMobile ? 12 : 0, gap: 12, flexShrink: 0 }}>
           <div style={{ display: "flex", gap: 6 }}>
             {["#ff5f57","#febc2e","#28c840"].map((c,i) => <div key={i} style={{ width: 12, height: 12, borderRadius: "50%", background: c }} />)}
           </div>
@@ -259,7 +282,7 @@ export default function Compiler() {
         </div>
 
         {/* Toolbar */}
-        <div style={{ height: 34, background: "#16162a", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", padding: "0 12px", gap: 8, flexShrink: 0 }}>
+        <div style={{ height: isMobile ? "auto" : 34, background: "#16162a", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", flexWrap: isMobile ? "wrap" : "nowrap", padding: isMobile ? "8px 12px" : "0 12px", gap: 8, rowGap: 8, flexShrink: 0 }}>
           <button onClick={runCode} disabled={running}
             style={{ height: 24, padding: "0 14px", background: running ? "#2a4a2a" : "#388a34", border: "none", borderRadius: 4, color: "#fff", fontSize: 11, fontWeight: 700, cursor: running ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 5, opacity: running ? 0.6 : 1, fontFamily: "inherit" }}>
             <IcoPlay /> {running ? "Running..." : "Run"}
@@ -272,7 +295,7 @@ export default function Compiler() {
           </button>
           <span style={{ fontSize: 11, color: T.text3, marginLeft: 6 }}>stdin:</span>
           <textarea value={stdin} onChange={e => setStdin(e.target.value)} rows={1} placeholder="e.g. 7"
-            style={{ height: 24, width: 120, background: "#0d0d14", border: `1px solid ${T.border}`, borderRadius: 3, color: T.teal, fontSize: 12, padding: "2px 8px", fontFamily: "monospace", outline: "none", resize: "none" }} />
+            style={{ height: 24, width: isMobile ? "100%" : 120, flex: isMobile ? "1 0 100%" : "0 0 auto", background: "#0d0d14", border: `1px solid ${T.border}`, borderRadius: 3, color: T.teal, fontSize: 12, padding: "2px 8px", fontFamily: "monospace", outline: "none", resize: "none" }} />
           {execTime && <span style={{ marginLeft: "auto", fontSize: 11, color: T.text3 }}>{execTime}ms</span>}
           <span style={{ marginLeft: execTime ? 8 : "auto", fontSize: 11, color: P, fontWeight: 600 }}>{COURSE.pill}</span>
         </div>
@@ -287,7 +310,7 @@ export default function Compiler() {
         </div>
 
         {/* Output panel */}
-        <div style={{ height: 210, background: T.bg, borderTop: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{ height: isMobile ? 180 : 210, background: T.bg, borderTop: `1px solid ${T.border}`, display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ height: 28, background: "#13131f", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", flexShrink: 0 }}>
             {["terminal","history"].map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
@@ -317,7 +340,7 @@ export default function Compiler() {
         </div>
 
         {/* Status bar */}
-        <div style={{ height: 22, background: P, display: "flex", alignItems: "center", padding: "0 12px", gap: 16, flexShrink: 0 }}>
+        <div style={{ height: 22, background: P, display: "flex", alignItems: "center", padding: "0 12px", gap: 16, flexShrink: 0, overflowX: isMobile ? "auto" : "hidden", whiteSpace: "nowrap" }}>
           {[`Assessment Mode — ${COURSE.title}`, COURSE.pill, "UTF-8", "Spaces: 4", `${code.split("\n").length} lines`].map((s, i) => (
             <span key={i} style={{ fontSize: 11, color: "rgba(255,255,255,.8)" }}>{s}</span>
           ))}

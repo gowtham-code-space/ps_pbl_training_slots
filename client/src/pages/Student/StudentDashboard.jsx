@@ -194,6 +194,15 @@ const CSS = `
   body.dark-mode .pt-box    { background: #1a1a2e; border-color: #2d2d4e; }
   body.dark-mode .pt-header-back { background: #1f1f3a; border-color: #2d2d4e; color: #a89ec9; }
   body.dark-mode .pt-icon-btn { background: #1f1f3a; border-color: #2d2d4e; color: #a89ec9; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    .pt-header { padding: 12px 14px; flex-wrap: wrap; }
+    .pt-header-sub { display: none; }
+    .pt-boxes-col { padding: 16px 14px 0; }
+    .pt-box { padding: 14px 14px; }
+    .pt-box-label { font-size: 14px; }
+  }
 `
 
 // ── Main FrontPage Component ──────────────────────────────────

@@ -33,7 +33,7 @@ export function Reports() {
   return (
     <div className="min-h-screen flex flex-col" style={{ ...adminThemeVars, background: "var(--bg)" }}>
       <Header showBack backPage="dashboard" />
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         <div className="text-[22px] font-extrabold mb-1" style={{ color: "var(--text)", fontFamily: "var(--font-head)" }}>
           Reports &amp; Analytics
         </div>
@@ -98,7 +98,7 @@ export function Settings() {
   return (
     <div className="min-h-screen flex flex-col" style={{ ...adminThemeVars, background: "var(--bg)" }}>
       <Header showBack backPage="dashboard" />
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         <div className="text-[22px] font-extrabold mb-1" style={{ color: "var(--text)", fontFamily: "var(--font-head)" }}>
           Points Details
         </div>
@@ -111,8 +111,8 @@ export function Settings() {
           style={{ background: "var(--white)", borderColor: "var(--border)" }}>
           <div className="text-[14px] font-extrabold uppercase tracking-wide mb-3.5"
             style={{ color: "var(--text2)", letterSpacing: "0.5px" }}>Academic Year</div>
-          <div className="flex items-center gap-3">
-            <input defaultValue="2025-2026" style={{ ...inputStyle, width: "160px" }}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <input defaultValue="2025-2026" className="w-full sm:w-[160px]" style={inputStyle}
               onFocus={(e)  => (e.target.style.borderColor = "var(--purple)")}
               onBlur={(e)   => (e.target.style.borderColor = "var(--border)")} />
             <button
@@ -199,7 +199,7 @@ export function Notifications() {
   return (
     <div className="min-h-screen flex flex-col" style={{ ...adminThemeVars, background: "var(--bg)" }}>
       <Header showBack backPage="dashboard" />
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         <div className="text-[22px] font-extrabold mb-1" style={{ color: "var(--text)", fontFamily: "var(--font-head)" }}>
           Alerts &amp; Notifications
         </div>

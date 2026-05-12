@@ -134,7 +134,7 @@ export default function Dashboard() {
       <Header />
 
       {/* HERO STATS */}
-      <div className="px-6 pt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="px-4 sm:px-6 pt-4 sm:pt-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Total Students"    value="331" dotColor="var(--green)"  sub="All Departments"    />
         <StatCard label="Total Faculty"     value="18"  dotColor="var(--purple)" sub="Across all labs"    />
         <StatCard label="Active Slots Today"value="14"  dotColor="var(--gold)"   sub="PS + PBL combined"  />
@@ -142,7 +142,7 @@ export default function Dashboard() {
       </div>
 
       {/* SECTION HEADER */}
-      <div className="px-6 pt-6 pb-2">
+      <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-2">
         <div className="text-[20px] font-extrabold" style={{ color: "var(--text)", fontFamily: "var(--font-head)" }}>
           Admin Dashboard
         </div>
@@ -152,7 +152,7 @@ export default function Dashboard() {
       </div>
 
       {/* GROUPS */}
-      <div className="px-6 pb-8 flex flex-col gap-6 mt-2">
+      <div className="px-4 sm:px-6 pb-8 flex flex-col gap-6 mt-2">
 
         {/* Venue & Faculty Allocation */}
         <div>

@@ -234,6 +234,38 @@ const CSS = `
   @keyframes rowIn  { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
   @keyframes spin   { to{transform:rotate(360deg)} }
   @keyframes modalIn { from{opacity:0;transform:translateY(24px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    .pt-header { padding: 12px 14px; flex-wrap: wrap; }
+    .pt-header-sub { display: none; }
+    .pt-content { padding: 14px 14px 24px; }
+
+    .pt-tabs { flex-direction: column; }
+    .pt-subtabs { flex-wrap: wrap; }
+
+    .pt-table-head, .pt-table-row {
+      grid-template-columns: 44px 1fr 80px 70px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .pt-table-head-with-btn, .pt-table-row-with-btn {
+      grid-template-columns: 44px 1fr 70px 80px 70px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .pt-act-table-head, .pt-act-table-row {
+      grid-template-columns: 56px 1fr 110px 74px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    .pt-grp-card { grid-template-columns: 40px 1fr; gap: 12px; padding: 14px 14px; }
+    .pt-grp-pts-wrap { grid-column: 1 / -1; text-align: left; }
+
+    .pt-details-modal { max-width: 92vw; }
+    .pt-details-body { padding: 16px; }
+  }
 `
 
 // ── Constants ─────────────────────────────────────────────────

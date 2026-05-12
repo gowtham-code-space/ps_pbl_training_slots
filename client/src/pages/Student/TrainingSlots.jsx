@@ -248,6 +248,37 @@ const CSS = `
   /* lock overlay stripe */
   .ptl-item.locked::after { content:''; position:absolute; inset:0; background:repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(0,0,0,0.012) 8px,rgba(0,0,0,0.012) 16px); pointer-events:none; }
   body.dark-mode .ptl-item.locked::after { background:repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(255,255,255,0.012) 8px,rgba(255,255,255,0.012) 16px); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .pt-course-grid { grid-template-columns: repeat(2, 1fr); }
+    .pt-detail-layout { grid-template-columns: 1fr; }
+    .pt-detail-side { flex-direction: row; flex-wrap: wrap; }
+    .pt-side-card, .pt-materials-card { flex: 1; min-width: 240px; }
+  }
+
+  @media (max-width: 640px) {
+    .pt-header { padding: 12px 14px; flex-wrap: wrap; }
+    .pt-header-sub { display: none; }
+    .pt-content { padding: 14px 14px 24px; }
+
+    .pt-tabs { flex-direction: column; }
+    .pt-course-grid { grid-template-columns: 1fr; }
+    .pt-ccard-img { height: 140px; }
+
+    .pt-detail-main { padding: 16px; }
+    .pt-detail-actions { flex-direction: column; }
+
+    .pt-booked-popup { width: 90vw; max-width: 320px; }
+
+    .ptl-hero-inner { flex-direction: column; }
+    .ptl-hero-info { padding: 18px 14px; }
+    .ptl-hero-banner { width: 100%; min-height: 120px; border-left: none; border-top: 1px solid var(--border); }
+
+    .ptl-item-top { padding: 14px 14px 10px; }
+    .ptl-concepts { padding: 0 14px 14px 58px; }
+    .ptl-points-row { padding: 0 14px 14px 58px; flex-wrap: wrap; }
+  }
 `
 
 // ── SLOT_INFO — extracted from SLOT_INFO in original ────────

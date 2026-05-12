@@ -47,7 +47,7 @@ export default function FacultyAllocation() {
     <div className="min-h-screen flex flex-col" style={{ ...adminThemeVars, background: "var(--bg)" }}>
       <Header showBack backPage="dashboard" />
 
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         <div
           className="text-[22px] font-extrabold mb-1"
           style={{ color: "var(--text)", fontFamily: "var(--font-head)" }}
@@ -59,7 +59,7 @@ export default function FacultyAllocation() {
         </div>
 
         {/* Mini stat cards */}
-        <div className="grid grid-cols-3 gap-2.5 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-6">
           {[
             { val: 18,         label: "Total Faculty", accent: "purple" },
             { val: assigned,   label: "Assigned",      accent: "red"    },
@@ -98,7 +98,7 @@ export default function FacultyAllocation() {
           className="rounded-[14px] border-[1.5px] overflow-hidden"
           style={{ background: "var(--white)", borderColor: "var(--border)" }}
         >
-          <div className="px-5 pt-5 pb-0">
+          <div className="px-4 sm:px-5 pt-5 pb-0">
             <div
               className="text-[14px] font-extrabold uppercase tracking-wide mb-3.5"
               style={{ color: "var(--text2)", letterSpacing: "0.5px" }}

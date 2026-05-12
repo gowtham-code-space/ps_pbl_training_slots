@@ -5,6 +5,28 @@
 
     import { useState, useEffect, useRef, useCallback } from "react";
 
+    function useIsNarrow(maxWidthPx = 640) {
+    const [isNarrow, setIsNarrow] = useState(() => {
+        if (typeof window === "undefined" || !window.matchMedia) return false;
+        return window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches;
+    });
+
+    useEffect(() => {
+        if (typeof window === "undefined" || !window.matchMedia) return;
+        const mq = window.matchMedia(`(max-width: ${maxWidthPx}px)`);
+        const onChange = (e) => setIsNarrow(e.matches);
+        if (mq.addEventListener) mq.addEventListener("change", onChange);
+        else mq.addListener(onChange);
+        setIsNarrow(mq.matches);
+        return () => {
+        if (mq.removeEventListener) mq.removeEventListener("change", onChange);
+        else mq.removeListener(onChange);
+        };
+    }, [maxWidthPx]);
+
+    return isNarrow;
+    }
+
     // ── Questions extracted directly from index_working.html ps_19 ──
     const QUESTIONS_RAW = [
     {q:'What does Nmap do?',o:['Edit network packets','Scan networks for open ports and services','Block malicious traffic','Encrypt communications'],a:1},
@@ -57,15 +79,15 @@
 
     // ── Sidebar ───────────────────────────────────────────────────
     const P = "#6c47ff";
-    function Sidebar({ active, setActive }) {
+    function Sidebar({ active, setActive, isMobile }) {
     const items = [
     { id: "test",  icon: <IcoMCQ />,   label: "MCQ Test" },
     { id: "guide", icon: <IcoGuide />, label: "Guide"    },
     { id: "score", icon: <IcoScore />, label: "Score"    },
     ];
     return (
-    <div style={{ width: 52, background: "#1a1040", display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12, gap: 4, flexShrink: 0 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 8, background: P, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, fontWeight: 900, color: "#fff", fontSize: 15 }}>B</div>
+    <div style={{ width: isMobile ? "100%" : 52, height: isMobile ? 52 : "auto", background: "#1a1040", display: "flex", flexDirection: isMobile ? "row" : "column", alignItems: "center", padding: isMobile ? "6px 10px" : undefined, paddingTop: isMobile ? undefined : 12, gap: isMobile ? 8 : 4, flexShrink: 0, overflowX: isMobile ? "auto" : "hidden" }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: P, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: isMobile ? 0 : 16, marginRight: isMobile ? 6 : 0, fontWeight: 900, color: "#fff", fontSize: 15, flexShrink: 0 }}>B</div>
         {items.map(it => (
         <button key={it.id} title={it.label} onClick={() => setActive(it.id)}
             style={{ width: 40, height: 40, borderRadius: 8, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", background: active === it.id ? "rgba(108,71,255,0.25)" : "transparent", color: active === it.id ? "#c4b5fd" : "#6b7280", transition: "all .18s" }}>
@@ -117,6 +139,7 @@
 
     // ── Main Component ─────────────────────────────────────────────
     export default function MCQAssessment() {
+    const isMobile = useIsNarrow(640);
     const [sideActive, setSideActive] = useState("test");
     const [phase,      setPhase]      = useState("intro");  // intro | running | done
     const [questions,  setQuestions]  = useState([]);
@@ -207,16 +230,16 @@
     const prog = questions.length ? (current / questions.length) * 100 : 0;
 
     return (
-    <div style={{ display: "flex", height: "100vh", background: "#f4f3ff", fontFamily: "'Segoe UI',system-ui,sans-serif", overflow: "hidden" }}>
-        <Sidebar active={sideActive} setActive={setSideActive} />
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "100dvh" : "100vh", background: "#f4f3ff", fontFamily: "'Segoe UI',system-ui,sans-serif", overflow: isMobile ? "auto" : "hidden" }}>
+        <Sidebar active={sideActive} setActive={setSideActive} isMobile={isMobile} />
         {showWarn && <WarningPopup count={warnings} onDismiss={dismissWarn} />}
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* ── INTRO ── */}
         {phase === "intro" && (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 40 }}>
-            <div style={{ background: "#fff", borderRadius: 20, padding: "48px 52px", maxWidth: 480, width: "100%", boxShadow: "0 8px 40px rgba(108,71,255,.12)", textAlign: "center" }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? 16 : 40 }}>
+            <div style={{ background: "#fff", borderRadius: 20, padding: isMobile ? "28px 20px" : "48px 52px", maxWidth: 480, width: "100%", boxShadow: "0 8px 40px rgba(108,71,255,.12)", textAlign: "center" }}>
                 <div style={{ width: 64, height: 64, borderRadius: 16, background: "rgba(108,71,255,.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 28 }}>🔐</div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", marginBottom: 8 }}>{COURSE_NAME}</div>
                 <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 28, lineHeight: 1.6 }}>
@@ -245,7 +268,7 @@
         {phase === "running" && q && (
             <>
             {/* Header */}
-            <div style={{ padding: "16px 28px", background: "#fff", borderBottom: "1px solid #e5e4eb", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+            <div style={{ padding: isMobile ? "12px 14px" : "16px 28px", background: "#fff", borderBottom: "1px solid #e5e4eb", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, gap: 12, flexWrap: isMobile ? "wrap" : "nowrap" }}>
                 <div>
                 <div style={{ fontSize: 17, fontWeight: 800, color: "#1a1a2e" }}>{COURSE_NAME}</div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", letterSpacing: 1, textTransform: "uppercase", marginTop: 2 }}>Question {current + 1} of {questions.length}</div>

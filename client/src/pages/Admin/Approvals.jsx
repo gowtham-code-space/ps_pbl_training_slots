@@ -78,7 +78,7 @@ export default function Approvals() {
   return (
     <div className="min-h-screen flex flex-col" style={{ ...adminThemeVars, background: "var(--bg)" }}>
       <Header showBack backPage="dashboard" />
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         <div className="text-[22px] font-extrabold mb-1" style={{ color: "var(--text)", fontFamily: "var(--font-head)" }}>System Approvals</div>
         <div className="text-[13px] mb-6" style={{ color: "var(--text2)" }}>All pending lab records and AP claims across all faculty</div>
 

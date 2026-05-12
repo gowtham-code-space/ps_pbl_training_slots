@@ -54,6 +54,23 @@ export default function PCDPLogin() {
   const navigate = useNavigate();
   const { showToast: pushToast } = useStore();
 
+  const useWindowWidth = () => {
+    const [width, setWidth] = useState(() =>
+      typeof window === 'undefined' ? 1024 : window.innerWidth
+    );
+
+    useEffect(() => {
+      const onResize = () => setWidth(window.innerWidth);
+      window.addEventListener('resize', onResize);
+      return () => window.removeEventListener('resize', onResize);
+    }, []);
+
+    return width;
+  };
+
+  const windowWidth = useWindowWidth();
+  const googleBtnWidth = Math.min(360, Math.max(240, windowWidth - 64));
+
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -136,9 +153,9 @@ export default function PCDPLogin() {
   };
 
   return (
-    <div style={styles.page}>
+    <div style={styles.page} className="pcdp-page">
       {/* LEFT PANEL */}
-      <div style={styles.leftPanel}>
+      <div style={styles.leftPanel} className="pcdp-left">
         {/* Animated particles */}
         <div style={styles.particlesWrap}>
           {PARTICLES.map((p) => (
@@ -209,7 +226,7 @@ export default function PCDPLogin() {
             </div>
 
             {/* Badges */}
-            <div style={styles.badgesRow}>
+            <div style={styles.badgesRow} className="pcdp-badges">
               {BADGES.map((b) => (
                 <div
                   key={b.label}
@@ -226,7 +243,7 @@ export default function PCDPLogin() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div style={styles.rightPanel}>
+      <div style={styles.rightPanel} className="pcdp-right">
         <div style={{ ...styles.formWrap, animation: 'slideIn 0.5s ease' }}>
           {/* Header */}
           <div style={styles.formHeader}>
@@ -478,7 +495,7 @@ export default function PCDPLogin() {
               useOneTap={false}
               theme="outline"
               size="large"
-              width="360"
+              width={googleBtnWidth}
             />
           </div>
 
@@ -521,9 +538,13 @@ export default function PCDPLogin() {
 
         @media (max-width: 768px) {
           .pcdp-page { flex-direction: column !important; }
-          .pcdp-left { flex: none !important; min-height: 320px !important; }
-          .pcdp-right { padding: 1.5rem !important; }
+          .pcdp-left { display: none !important; }
+          .pcdp-right { padding: 1.25rem !important; min-height: 100vh !important; }
           .pcdp-badges { flex-wrap: wrap !important; }
+        }
+
+        @media (max-width: 420px) {
+          .pcdp-right { padding: 1rem !important; }
         }
       `}</style>
     </div>
