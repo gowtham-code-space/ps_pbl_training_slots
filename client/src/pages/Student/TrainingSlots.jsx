@@ -16,22 +16,12 @@ function UserIdentity({ user }) {
   if (!user) return null
 
   const name = user?.name || 'User'
-  const avatarUrl = user?.picture || user?.avatar || user?.photo || user?.photoURL
-  const initials = user?.name ? user.name.charAt(0).toUpperCase() : 'U'
+  const initials = String(name).trim()?.charAt(0)?.toUpperCase() || 'U'
 
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10, padding:'4px 14px 4px 4px', background:'var(--white)', border:'1.5px solid var(--border)', borderRadius:50 }}>
       <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--purple-dim)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'var(--purple)', overflow:'hidden' }}>
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={name}
-            referrerPolicy="no-referrer"
-            style={{ width:'100%', height:'100%', objectFit:'cover' }}
-          />
-        ) : (
-          initials
-        )}
+        {initials}
       </div>
       <div style={{ fontSize:13, fontWeight:800, color:'var(--text)', maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</div>
     </div>
@@ -257,6 +247,18 @@ const CSS = `
     .pt-side-card, .pt-materials-card { flex: 1; min-width: 240px; }
   }
 
+  /* Level-select hero: stack earlier so the banner image doesn't get squeezed */
+  @media (max-width: 820px) {
+    .ptl-hero-inner { flex-direction: column; }
+    .ptl-hero-banner {
+      width: 100%;
+      border-left: none;
+      border-top: 1px solid var(--border);
+      aspect-ratio: 16 / 9;
+      min-height: 160px;
+    }
+  }
+
   @media (max-width: 640px) {
     .pt-header { padding: 12px 14px; flex-wrap: wrap; }
     .pt-header-sub { display: none; }
@@ -269,11 +271,25 @@ const CSS = `
     .pt-detail-main { padding: 16px; }
     .pt-detail-actions { flex-direction: column; }
 
-    .pt-booked-popup { width: 90vw; max-width: 320px; }
+    /* Header actions wrap so buttons don't overflow off-screen */
+    .pt-header-actions { width:100%; flex-wrap:wrap; justify-content:flex-start; }
+
+    /* Booked popup: fixed & centered so it's always visible on mobile */
+    .pt-booked-popup {
+      position: fixed;
+      top: 88px;
+      left: 14px;
+      right: 14px;
+      width: auto;
+      max-width: 520px;
+      margin: 0 auto;
+      z-index: 10001;
+    }
+    .pt-booked-popup-body { max-height: calc(100vh - 200px); }
 
     .ptl-hero-inner { flex-direction: column; }
     .ptl-hero-info { padding: 18px 14px; }
-    .ptl-hero-banner { width: 100%; min-height: 120px; border-left: none; border-top: 1px solid var(--border); }
+    .ptl-hero-banner { width: 100%; min-height: 120px; border-left: none; border-top: 1px solid var(--border); aspect-ratio: 16 / 9; }
 
     .ptl-item-top { padding: 14px 14px 10px; }
     .ptl-concepts { padding: 0 14px 14px 58px; }
@@ -1488,7 +1504,7 @@ export default function TrainingSlots({ onBack }) {
             <div className="pt-header-sub">PS &amp; PBL Lab Booking</div>
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div className="pt-header-actions" style={{ display:'flex', alignItems:'center', gap:10 }}>
           <UserIdentity user={user} />
           <BookedSlotsPopup bookedSlots={bookedSlots} />
           <button className="pt-dark-toggle" onClick={()=>setDarkMode(d=>!d)}>

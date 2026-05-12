@@ -14,22 +14,12 @@ function UserIdentity({ user }) {
   if (!user) return null
 
   const name = user?.name || 'User'
-  const avatarUrl = user?.picture || user?.avatar || user?.photo || user?.photoURL
-  const initials = user?.name ? user.name.charAt(0).toUpperCase() : 'U'
+  const initials = String(name).trim()?.charAt(0)?.toUpperCase() || 'U'
 
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10, padding:'4px 14px 4px 4px', background:'var(--white)', border:'1.5px solid var(--border)', borderRadius:50 }}>
       <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--purple-dim)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'var(--purple)', overflow:'hidden' }}>
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={name}
-            referrerPolicy="no-referrer"
-            style={{ width:'100%', height:'100%', objectFit:'cover' }}
-          />
-        ) : (
-          initials
-        )}
+        {initials}
       </div>
       <div style={{ fontSize:13, fontWeight:800, color:'var(--text)', maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</div>
     </div>
@@ -611,7 +601,7 @@ function RewardPoints({ onOpenDetails }) {
           <option value="2nd">2nd Year</option>
           <option value="1st">1st Year</option>
         </select>
-        <input className="pt-search" placeholder="Search reg no (eg 7376242AL126)..." value={search} onChange={e=>setSearch(e.target.value)}/>
+        <input className="pt-search" placeholder="eg Gowtham J / 7376242AL126..." value={search} onChange={e=>setSearch(e.target.value)}/>
       </div>
       <div className="pt-count">Showing {showRows.length} students</div>
       {loading && <Spinner text={`Loading ${dept==='ALL'?'all departments':(DEPT_NAMES[dept]||dept)} rankings...`}/>}
@@ -718,7 +708,7 @@ function ActivityPoints({ onOpenGroup }) {
               <option value="ALL">All Depts</option>
               {DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
             </select>
-            <input className="pt-search" placeholder="e.g. 7376242BT192" value={apSearch} onChange={e=>setApSearch(e.target.value)}/>
+            <input className="pt-search" placeholder="e.g. Saswath kumar J / 7376242BT192" value={apSearch} onChange={e=>setApSearch(e.target.value)}/>
           </div>
           {indLoading && <Spinner text="Loading activity rankings..."/>}
           {indError   && <div className="pt-empty" style={{color:'var(--red)'}}>{indError}</div>}

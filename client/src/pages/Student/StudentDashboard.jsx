@@ -13,22 +13,12 @@ function UserIdentity({ user }) {
   if (!user) return null
 
   const name = user?.name || 'User'
-  const avatarUrl = user?.picture || user?.avatar || user?.photo || user?.photoURL
-  const initials = user?.name ? user.name.charAt(0).toUpperCase() : 'U'
+  const initials = String(name).trim()?.charAt(0)?.toUpperCase() || 'U'
 
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10, padding:'4px 14px 4px 4px', background:'var(--white)', border:'1.5px solid var(--border)', borderRadius:50 }}>
       <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--purple-dim)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:800, color:'var(--purple)', overflow:'hidden' }}>
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={name}
-            referrerPolicy="no-referrer"
-            style={{ width:'100%', height:'100%', objectFit:'cover' }}
-          />
-        ) : (
-          initials
-        )}
+        {initials}
       </div>
       <div style={{ fontSize:13, fontWeight:800, color:'var(--text)', maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</div>
     </div>
