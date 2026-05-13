@@ -288,6 +288,11 @@ export default function PCDPLogin() {
                 id="username"
                 ref={usernameRef}
                 type="text"
+                name="pcdp_username"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => {
@@ -354,6 +359,11 @@ export default function PCDPLogin() {
                 id="password"
                 ref={passwordRef}
                 type={showPassword ? 'text' : 'password'}
+                name="pcdp_password"
+                autoComplete="new-password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => {
@@ -499,7 +509,7 @@ export default function PCDPLogin() {
             />
           </div>
 
-          <p style={styles.footer}>© 2024 PCDP Portal · Bitsathy</p>
+          <p style={styles.footer}>© 2026 PCDP Portal · Bitsathy</p>
         </div>
       </div>
 
