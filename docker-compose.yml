@@ -41,6 +41,7 @@ services:
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
       REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
       ACCESS_TOKEN_EXPIRY: ${ACCESS_TOKEN_EXPIRY}
+      REFRESH_TOKEN_EXPIRY: ${REFRESH_TOKEN_EXPIRY}
       UPLOAD_PATH: /opt/uploads/slot-matrix
     volumes:
       - /opt/uploads/slot-matrix:/opt/uploads/slot-matrix
