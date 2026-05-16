@@ -84,7 +84,7 @@ function AppNavigator() {
     if (!ready) return null;
 
     return (
-        <Router>
+        <Router basename="/slot-matrix">
             <Routes>
                 <Route path="/" element={<HomeRedirect />} />
                 <Route path="/auth/login" element={<Login/>}/>
