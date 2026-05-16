@@ -15,7 +15,7 @@ const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
 
 const BADGES = [
   { label: 'Top Performer', color: '#f59e0b' },
-  { label: '1500 RP Earned', color: '#3b82f6' },
+  { label: '250 RP Earned', color: '#3b82f6' },
   { label: 'Quiz Master', color: '#10b981' },
   { label: 'Level 5 Reached', color: '#8b5cf6' },
 ];
