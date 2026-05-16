@@ -20,6 +20,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - reverse-proxy
 
   backend:
     build:
@@ -50,6 +52,7 @@ services:
         condition: service_healthy
     networks:
       - slot_matrix_net
+      - reverse-proxy
 
   frontend:
     build:
@@ -66,7 +69,7 @@ services:
       - backend
     networks:
       - slot_matrix_net
-
+      - reverse-proxy
 volumes:
   mysql_data:
 
